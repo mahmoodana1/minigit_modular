@@ -3,12 +3,13 @@
 #include <string>
 #include <unordered_map>
 
-class Command;
+#include "../commands/Command.h"
 
 class CommandRegistry {
   public:
     static CommandRegistry &getInstance();
-    void registerCommand(const std::string &name, Command command);
+    void registerCommand(const std::string &name,
+                         std::unique_ptr<Command> command);
     Command *getCommand(const std::string &name);
 
   private:
