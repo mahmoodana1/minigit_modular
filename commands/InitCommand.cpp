@@ -1,19 +1,24 @@
 #include "InitCommand.h"
+#include "../core/CommandRegistry.h"
 #include "../utils/utils.h"
 #include <iostream>
+#include <string>
 #include <vector>
 
-bool checkArgs(const std::vector<std::string> &args) {
-    if (args.size() > 1) {
-        std::cout << "Usage: minigit init\n";
+std::string InitCommand::getName() { return "init"; }
+
+bool InitCommand::checkArgs(const std::vector<std::string> &args) {
+    if (args.size() > 1)
         return false;
-    }
+
     return true;
 }
 
 void InitCommand::execute(const std::vector<std::string> &args) {
-    if (!checkArgs(args))
+    if (!checkArgs(args)) {
+        std::cout << "Usage: minigit init\n";
         return;
+    }
 
     if (Utils::exists(".minigit")) {
         std::cout << "Repository already initialized.\n";
@@ -27,3 +32,14 @@ void InitCommand::execute(const std::vector<std::string> &args) {
 
     std::cout << "Initialized empty MiniGit repository.\n";
 }
+
+namespace {
+struct InitCommandRegistrar {
+    InitCommandRegistrar() {
+        CommandRegistry::getInstance().registerCommand(
+            "init", std::make_unique<InitCommand>());
+    }
+};
+
+static InitCommandRegistrar registrar;
+} // namespace
