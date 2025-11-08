@@ -11,7 +11,7 @@ CommandRegistry &CommandRegistry::getInstance() {
 void CommandRegistry::registerCommand(const std::string &name,
                                       std::unique_ptr<Command> command) {
     if (commands.find(name) != commands.end()) {
-        std::cout << "Command already exists";
+        std::cout << "Command already exists\n";
         return;
     }
 
