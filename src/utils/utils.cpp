@@ -6,27 +6,29 @@ namespace Utils {
 
 void copyDirRecursive(const fs::path &src, const fs::path &dest,
                       bool skipMeta) {
-    if (!fs::exists(src)) {
-        std::cout << "Source directory does not exist: " << src << "\n";
+    fs::path absSrc = fs::absolute(src);
+    fs::path absDest = fs::absolute(dest);
+
+    if (!fs::exists(absSrc) || !fs::is_directory(absSrc)) {
+        std::cerr << "Source path invalid: " << absSrc << "\n";
         return;
     }
 
-    for (const auto &entry : fs::recursive_directory_iterator(src)) {
+    for (const auto &entry : fs::recursive_directory_iterator(absSrc)) {
         const auto &path = entry.path();
-        auto relativePath = fs::relative(path, src);
-        fs::path targetPath = dest / relativePath;
+        auto relativePath = fs::relative(path, absSrc);
+        fs::path targetPath = absDest / relativePath;
 
-        if (skipMeta) {
-            if (path.string().find(".git") != std::string::npos ||
-                path.string().find(".minigit") != std::string::npos) {
-                continue;
-            }
-        }
+        if (skipMeta && (path.string().find(".git") != std::string::npos ||
+                         path.string().find(".minigit") != std::string::npos))
+            continue;
 
         if (fs::is_directory(path)) {
             fs::create_directories(targetPath);
         } else if (fs::is_regular_file(path)) {
-            copyFileSafe(path, targetPath);
+            fs::create_directories(targetPath.parent_path());
+            fs::copy_file(path, targetPath,
+                          fs::copy_options::overwrite_existing);
         }
     }
 }
@@ -40,8 +42,6 @@ void copyFileSafe(const fs::path &src, const fs::path &destRoot) {
         }
 
         fs::path targetPath = destRoot / fs::relative(src);
-
-        std::cout << targetPath.string() << '\n';
 
         fs::create_directories(targetPath.parent_path());
 
