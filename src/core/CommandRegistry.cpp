@@ -1,4 +1,4 @@
-#include "CommandRegistry.h"
+#include "../../include/core/CommandRegistry.h"
 #include <iostream>
 #include <memory>
 #include <utility>

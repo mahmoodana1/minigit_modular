@@ -1,4 +1,4 @@
-#include "core/CommandRegistry.h"
+#include "../include/core/CommandRegistry.h"
 #include <iostream>
 #include <string>
 #include <vector>

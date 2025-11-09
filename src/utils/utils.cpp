@@ -1,4 +1,5 @@
-#include "utils.h"
+#include "../../include/utils/utils.h"
+#include <filesystem>
 #include <iostream>
 
 namespace Utils {
@@ -31,12 +32,29 @@ void copyDirRecursive(const fs::path &src, const fs::path &dest,
     }
 }
 
-void copyFileSafe(const fs::path &src, const fs::path &dest) {
+void copyFileSafe(const fs::path &src, const fs::path &destRoot) {
     try {
-        fs::create_directories(dest.parent_path());
-        fs::copy_file(src, dest, fs::copy_options::overwrite_existing);
+        if (!fs::exists(src) || !fs::is_regular_file(src)) {
+            std::cerr << "Source file not found or not a regular file: " << src
+                      << "\n";
+            return;
+        }
+
+        fs::path targetPath = destRoot / fs::relative(src);
+
+        std::cout << targetPath.string() << '\n';
+
+        fs::create_directories(targetPath.parent_path());
+
+        if (fs::exists(targetPath) && fs::is_directory(targetPath)) {
+            fs::remove_all(targetPath);
+        }
+
+        fs::copy_file(src, targetPath, fs::copy_options::overwrite_existing);
+
+        std::cout << "Copied " << src << " → " << targetPath << "\n";
     } catch (const std::exception &e) {
-        std::cerr << "Failed to copy file: " << src << " → " << dest
+        std::cerr << "Failed to copy file: " << src << " → " << destRoot
                   << "\nReason: " << e.what() << "\n";
     }
 }

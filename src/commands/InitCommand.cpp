@@ -1,6 +1,6 @@
-#include "InitCommand.h"
-#include "../core/CommandRegistry.h"
-#include "../utils/utils.h"
+#include "../../include/commands/InitCommand.h"
+#include "../../include/core/CommandRegistry.h"
+#include "../../include/utils/utils.h"
 #include <iostream>
 #include <string>
 #include <vector>
