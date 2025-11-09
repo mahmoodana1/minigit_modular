@@ -1,9 +1,8 @@
 #pragma once
+#include "../commands/Command.h"
 #include <memory>
 #include <string>
 #include <unordered_map>
-
-#include "../commands/Command.h"
 
 class CommandRegistry {
   public:

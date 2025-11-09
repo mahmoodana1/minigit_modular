@@ -2,7 +2,7 @@
 #include "../core/CommandRegistry.h"
 #include "Command.h"
 
-class InitCommand : public Command {
+class CommitCommand : public Command {
     void execute(const std::vector<std::string> &args) override;
     bool checkArgs(const std::vector<std::string> &args) override;
     std::string getName() override;

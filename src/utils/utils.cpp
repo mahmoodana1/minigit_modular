@@ -16,7 +16,6 @@ void copyDirRecursive(const fs::path &src, const fs::path &dest,
         auto relativePath = fs::relative(path, src);
         fs::path targetPath = dest / relativePath;
 
-        // Skip .git and .minigit directories if requested
         if (skipMeta) {
             if (path.string().find(".git") != std::string::npos ||
                 path.string().find(".minigit") != std::string::npos) {
