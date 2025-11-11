@@ -87,7 +87,7 @@ std::string getLine(const fs::path &path) {
         std::getline(file, firstLine);
         file.close();
     } else {
-        std::cout << "Failed to open file.\n";
+        std::cout << "Failed to open file:" << path.string() << '\n';
     }
 
     return firstLine;

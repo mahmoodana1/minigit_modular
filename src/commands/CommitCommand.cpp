@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <vector>
 
 std::string getCommitMessage(const std::vector<std::string> &args) {
@@ -76,6 +77,22 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
 
     std::cout << "Commit pushed to commits directory with id: " << commitId
               << '\n';
+
+    // head movement
+    fs::path branchNamePath = ".minigit/currentBranch";
+
+    std::string branchName = Utils::getLine(branchNamePath);
+
+    headMove(branchName, commitId);
+}
+
+void CommitCommand::headMove(std::string branchName, std::string commitId) {
+    Utils::ensureDir(".minigit/heads");
+
+    fs::path headPath = ".minigit/heads/" + branchName;
+    std::string firstLine = Utils::getLine(headPath);
+
+    Utils::clearAndPushLine(headPath, commitId);
 }
 
 namespace {
