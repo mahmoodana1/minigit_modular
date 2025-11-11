@@ -60,8 +60,8 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
     std::ofstream info(".minigit/commits/" + commitId + "/info.txt");
     if (info.is_open()) {
         info << "Commit ID: " << commitId << "\n";
-        info << "Message: " << (args.size() > 1 ? args[1] : "(no message)")
-             << "\n";
+        info << "Message: "
+             << (args.size() > 1 ? commitMessage : "(no message)") << "\n";
 
         info << "Author: " << std::getenv("USER") << "\n";
         info << "Date: " << GeneratorUtils::getCurrentTimeUTC() << "\n";
