@@ -1,5 +1,6 @@
 #include "../../include/utils/utils.h"
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 
 namespace Utils {
@@ -75,6 +76,32 @@ void ensureDir(const fs::path &path) {
     } catch (const std::exception &e) {
         std::cerr << "Failed to create directory: " << path
                   << "\nReason: " << e.what() << "\n";
+    }
+}
+
+std::string getLine(const fs::path &path) {
+    std::ifstream file(path);
+    std::string firstLine;
+
+    if (file.is_open()) {
+        std::getline(file, firstLine);
+        file.close();
+    } else {
+        std::cout << "Failed to open file.\n";
+    }
+
+    return firstLine;
+}
+
+void clearAndPushLine(const fs::path &path, std::string line) {
+    std::ofstream file(path);
+
+    if (file.is_open()) {
+        file << line;
+        file.close();
+    } else {
+        std::cout << "Failed to open file.\n";
+        return;
     }
 }
 

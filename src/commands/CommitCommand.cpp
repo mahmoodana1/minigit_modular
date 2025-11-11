@@ -56,8 +56,8 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
     Utils::removeDir(src);
     fs::create_directories(src);
 
-    // Write info.txt
-    std::ofstream info(".minigit/commits/" + commitId + "/info.txt");
+    // Write info
+    std::ofstream info(".minigit/commits/" + commitId + "/info");
     if (info.is_open()) {
         info << "Commit ID: " << commitId << "\n";
         info << "Message: "
