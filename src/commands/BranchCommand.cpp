@@ -1,4 +1,5 @@
 #include "../../include/commands/branchCommand.h"
+#include "../../include/utils/utils.h"
 #include <filesystem>
 #include <iostream>
 #include <memory>
@@ -8,28 +9,38 @@
 std::string BranchCommand::getName() { return "branch"; }
 
 bool BranchCommand::checkArgs(const std::vector<std::string> &args) {
-    if (args.size() != 3) {
-        return false;
-    }
+    return args.size() >= 2;
+}
 
-    return true;
+void BranchCommand::description() {
+    std::cout << R"(
+Usage: minigit branch <option> [args ...]
+
+Options:
+  new <branch_name>       Create a new branch based on the current branch.
+  delete <branch_name>    Delete an existing branch (cannot delete 'main' or current).
+  list all                List all existing branches.
+
+Examples:
+  minigit branch new featureX
+  minigit branch delete featureX
+  minigit branch list all
+)";
 }
 
 void BranchCommand::execute(const std::vector<std::string> &args) {
     if (!checkArgs(args)) {
-        std::cout << "Usage: minigit branch <option> [args ...]\n";
+        description();
         return;
     }
 
     if (!Utils::exists(".minigit/currentBranch") ||
         !Utils::exists(".minigit/heads")) {
-        std::cout << "Repository not initialized correctly\n";
-
+        std::cout << "Repository not initialized correctly.\n";
         return;
     }
 
     branchCommandsExecute(args);
-    return;
 }
 
 void BranchCommand::branchCommandsExecute(
@@ -37,11 +48,17 @@ void BranchCommand::branchCommandsExecute(
     std::string command = args[1];
 
     if (command == "new") {
+        if (args.size() < 3) {
+            std::cout << "Missing branch name.\n";
+            description();
+            return;
+        }
+
         std::string newBranchName = args[2];
 
         if (Utils::fileNameExists(fs::path(".minigit/heads"), newBranchName)) {
-            std::cout << "Branch with name: " << newBranchName
-                      << " Already exists\n";
+            std::cout << "Branch with name '" << newBranchName
+                      << "' already exists.\n";
             return;
         }
 
@@ -50,56 +67,72 @@ void BranchCommand::branchCommandsExecute(
         std::string baseCommitId =
             Utils::getLine(".minigit/heads/" + currentBranchName);
 
+        // Create new branch file pointing to same commit as current branch
         Utils::clearAndPushLine(fs::path(".minigit/heads/" + newBranchName),
                                 baseCommitId);
-        Utils::clearAndPushLine(currentBranchPath, newBranchName);
 
+        std::cout << "Branch '" << newBranchName << "' created successfully.\n";
         return;
+    }
 
-    } else if (command == "delete") {
+    else if (command == "delete") {
+        if (args.size() < 3) {
+            std::cout << "Missing branch name.\n";
+            description();
+            return;
+        }
+
+        std::string wannaDeleteBranch = args[2];
         fs::path currentBranchPath = fs::path(".minigit/currentBranch");
         std::string currentBranchName = Utils::getLine(currentBranchPath);
-        std::string wannaDeleteBranch = args[2];
+
+        if (wannaDeleteBranch == "main") {
+            std::cout << "You cannot delete the 'main' branch.\n";
+            return;
+        }
 
         if (wannaDeleteBranch == currentBranchName) {
-            std::cout << "Cannot Delete the branch you are on.\n";
+            std::cout << "Cannot delete the branch you are currently on.\n";
             return;
         }
 
         fs::path branchFilePath = ".minigit/heads/" + wannaDeleteBranch;
         if (fs::remove(branchFilePath)) {
-            std::cout << "Branch: " << wannaDeleteBranch
-                      << " Deleted successfully.\n";
+            std::cout << "Branch '" << wannaDeleteBranch
+                      << "' deleted successfully.\n";
         } else {
             std::cout << "Branch not found.\n";
         }
 
         return;
+    }
 
-    } else if (command == "list") {
-        if (args[2] == "all") {
+    else if (command == "list") {
+        if (args.size() >= 3 && args[2] == "all") {
             fs::path headsDir = ".minigit/heads";
-
-            std::cout << "Branches: \n";
+            std::cout << "Branches:\n";
             Utils::printFilesInDirectory(headsDir, true);
-
             return;
         }
+
+        std::cout << "Invalid usage of 'list'.\n";
+        description();
+        return;
     }
-    // flags integraion
-    //
-    //
 
-    std::cout << "Usage: branch <option> [args ...]\n";
-    return;
+    else {
+        std::cout << "Unknown branch option: " << command << "\n";
+        description();
+        return;
+    }
 }
-
 namespace {
-struct BranchCommandRegisterar {
-    BranchCommandRegisterar() {
+
+struct BranchCommandRegistrar {
+    BranchCommandRegistrar() {
         CommandRegistry::getInstance().registerCommand(
             "branch", std::make_unique<BranchCommand>());
     }
 };
-static BranchCommandRegisterar registerar;
+static BranchCommandRegistrar registrar;
 } // namespace

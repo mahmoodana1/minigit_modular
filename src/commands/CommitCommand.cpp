@@ -12,7 +12,6 @@ std::string getCommitMessage(const std::vector<std::string> &args) {
     for (int i = 2; i < args.size(); i++) {
         messageStream << args[i] << ' ';
     }
-
     return messageStream.str();
 }
 
@@ -21,18 +20,31 @@ std::string CommitCommand::getName() { return "commit"; }
 bool CommitCommand::checkArgs(const std::vector<std::string> &args) {
     if (args.size() < 3 || args[1] != "-m")
         return false;
-
     return true;
+}
+
+void CommitCommand::description() {
+    std::cout << R"(
+Usage: minigit commit -m <message>
+
+Description:
+  Records changes from the staging area (index) into a new commit.
+
+Examples:
+  minigit commit -m "Initial commit"
+  minigit commit -m "Fix bug in AddCommand"
+)";
 }
 
 void CommitCommand::execute(const std::vector<std::string> &args) {
     if (!checkArgs(args)) {
-        std::cout << "Usage: minigit commit -m <message>\n";
+        description();
         return;
     }
 
     if (!Utils::exists(".minigit") || !Utils::exists(".minigit/index")) {
         std::cout << "Repository not initialized correctly\n";
+        return;
     }
 
     std::string commitId = GeneratorUtils::generateCommitId();
@@ -45,10 +57,8 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
     if (fs::is_empty(src)) {
         std::cout
             << "You cannot commit an empty index directory, make sure you have "
-               "added files to the staging directory with:\n./build/minigit "
-               "add "
-               "<options>\n";
-
+               "added files to the staging directory with:\n"
+               "./build/minigit add <options>\n";
         return;
     }
 
@@ -57,16 +67,13 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
     Utils::removeDir(src);
     fs::create_directories(src);
 
-    // Write info
     std::ofstream info(".minigit/commits/" + commitId + "/info");
     if (info.is_open()) {
         info << "Commit ID: " << commitId << "\n";
         info << "Message: "
              << (args.size() > 1 ? commitMessage : "(no message)") << "\n";
-
         info << "Author: " << std::getenv("USER") << "\n";
         info << "Date: " << GeneratorUtils::getCurrentTimeUTC() << "\n";
-
         info << "Files committed:\n";
         for (const auto &entry : fs::recursive_directory_iterator(commitPath)) {
             if (fs::is_regular_file(entry))
@@ -78,20 +85,15 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
     std::cout << "Commit pushed to commits directory with id: " << commitId
               << '\n';
 
-    // head movement
     fs::path branchNamePath = ".minigit/currentBranch";
-
     std::string branchName = Utils::getLine(branchNamePath);
-
     headMove(branchName, commitId);
 }
 
 void CommitCommand::headMove(std::string branchName, std::string commitId) {
     Utils::ensureDir(".minigit/heads");
-
     fs::path headPath = ".minigit/heads/" + branchName;
     std::string firstLine = Utils::getLine(headPath);
-
     Utils::clearAndPushLine(headPath, commitId);
 }
 

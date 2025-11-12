@@ -5,5 +5,6 @@
 class AddCommand : public Command {
     void execute(const std::vector<std::string> &args) override;
     bool checkArgs(const std::vector<std::string> &args) override;
+    void description() override;
     std::string getName() override;
 };

@@ -1,3 +1,4 @@
+
 #include "../../include/commands/InitCommand.h"
 #include <iostream>
 #include <string>
@@ -8,13 +9,32 @@ std::string InitCommand::getName() { return "init"; }
 bool InitCommand::checkArgs(const std::vector<std::string> &args) {
     if (args.size() > 1)
         return false;
-
     return true;
+}
+
+void InitCommand::description() {
+    std::cout << R"(
+Usage: minigit init
+
+Description:
+  Initializes a new MiniGit repository in the current directory.
+
+Details:
+  Creates the .minigit directory structure with subfolders:
+    - index/
+    - commits/
+    - logs/
+    - heads/
+  Sets up the default branch 'main' and HEAD reference.
+
+Example:
+  minigit init
+)";
 }
 
 void InitCommand::execute(const std::vector<std::string> &args) {
     if (!checkArgs(args)) {
-        std::cout << "Usage: minigit init\n";
+        description();
         return;
     }
 
@@ -42,6 +62,5 @@ struct InitCommandRegistrar {
             "init", std::make_unique<InitCommand>());
     }
 };
-
 static InitCommandRegistrar registrar;
 } // namespace
