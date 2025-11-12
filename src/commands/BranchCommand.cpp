@@ -8,10 +8,7 @@
 std::string BranchCommand::getName() { return "branch"; }
 
 bool BranchCommand::checkArgs(const std::vector<std::string> &args) {
-    if (args.size() != 3 && args[1] != "new")
-        return false;
-
-    if (args.size() != 2 || args[1] == "new")
+    if (args.size() > 3)
         return false;
 
     return true;
@@ -19,7 +16,7 @@ bool BranchCommand::checkArgs(const std::vector<std::string> &args) {
 
 void BranchCommand::execute(const std::vector<std::string> &args) {
     if (!checkArgs(args)) {
-        std::cout << "Usage: minigit branch -<option>\n";
+        std::cout << "Usage: minigit branch <option> [args ...]\n";
         return;
     }
 
@@ -28,15 +25,16 @@ void BranchCommand::execute(const std::vector<std::string> &args) {
         std::cout << "Repository not initialized correctly\n";
     }
 
+    branchCommandsExecute(args);
     return;
 }
 
 void BranchCommand::branchCommandsExecute(
     const std::vector<std::string> &args) {
-    std::string command = args[0];
+    std::string command = args[1];
 
     if (command == "new") {
-        std::string newBranchName = args[1];
+        std::string newBranchName = args[2];
 
         if (Utils::fileNameExists(fs::path(".minigit/heads"), newBranchName)) {
             std::cout << "Branch with name: " << newBranchName
@@ -45,7 +43,10 @@ void BranchCommand::branchCommandsExecute(
         }
 
         fs::path currentBranchPath = fs::path(".minigit/currentBranch");
-        std::string baseCommitId = Utils::getLine(currentBranchPath);
+        std::string currentBranchName = Utils::getLine(currentBranchPath);
+        std::string baseCommitId =
+            Utils::getLine(".minigit/heads/" + currentBranchName);
+
         Utils::clearAndPushLine(fs::path(".minigit/heads/" + newBranchName),
                                 baseCommitId);
         Utils::clearAndPushLine(currentBranchPath, newBranchName);
@@ -56,9 +57,8 @@ namespace {
 struct BranchCommandRegisterar {
     BranchCommandRegisterar() {
         CommandRegistry::getInstance().registerCommand(
-            "commit", std::make_unique<BranchCommand>());
+            "branch", std::make_unique<BranchCommand>());
     }
-    static BranchCommandRegisterar registerar;
 };
-
+static BranchCommandRegisterar registerar;
 } // namespace
