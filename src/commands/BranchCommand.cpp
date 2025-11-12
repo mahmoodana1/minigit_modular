@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <vector>
 
 std::string BranchCommand::getName() { return "branch"; }
 
@@ -30,18 +31,24 @@ void BranchCommand::execute(const std::vector<std::string> &args) {
     return;
 }
 
-void BranchCommand::branchCommandsExecute(std::string command,
-                                          std::string branchName) {
+void BranchCommand::branchCommandsExecute(
+    const std::vector<std::string> &args) {
+    std::string command = args[0];
+
     if (command == "new") {
-        if (Utils::fileNameExists(fs::path(".minigit/heads"), branchName)) {
-            std::cout << "Branch with name: " << branchName
+        std::string newBranchName = args[1];
+
+        if (Utils::fileNameExists(fs::path(".minigit/heads"), newBranchName)) {
+            std::cout << "Branch with name: " << newBranchName
                       << " Already exists";
             return;
         }
 
-        std::string baseCommitId = Utils::getLine(".minigit/currentBranch");
-        Utils::clearAndPushLine(fs::path(".minigit/heads/" + branchName),
+        fs::path currentBranchPath = fs::path(".minigit/currentBranch");
+        std::string baseCommitId = Utils::getLine(currentBranchPath);
+        Utils::clearAndPushLine(fs::path(".minigit/heads/" + newBranchName),
                                 baseCommitId);
+        Utils::clearAndPushLine(currentBranchPath, newBranchName);
     }
 }
 
