@@ -1,4 +1,3 @@
-
 #include "../../include/commands/InitCommand.h"
 #include <iostream>
 #include <string>

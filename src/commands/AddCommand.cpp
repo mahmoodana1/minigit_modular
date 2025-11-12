@@ -1,6 +1,4 @@
-
 #include "../../include/commands/AddCommand.h"
-#include "../../include/core/CommandRegistry.h"
 #include <iostream>
 #include <string>
 #include <sys/types.h>

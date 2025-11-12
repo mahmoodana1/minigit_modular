@@ -46,6 +46,8 @@ void BranchCommand::execute(const std::vector<std::string> &args) {
 void BranchCommand::branchCommandsExecute(
     const std::vector<std::string> &args) {
     std::string command = args[1];
+    fs::path currentBranchPath = fs::path(".minigit/currentBranch");
+    std::string currentBranchName = Utils::getLine(currentBranchPath);
 
     if (command == "new") {
         if (args.size() < 3) {
@@ -62,12 +64,10 @@ void BranchCommand::branchCommandsExecute(
             return;
         }
 
-        fs::path currentBranchPath = fs::path(".minigit/currentBranch");
-        std::string currentBranchName = Utils::getLine(currentBranchPath);
         std::string baseCommitId =
             Utils::getLine(".minigit/heads/" + currentBranchName);
 
-        // Create new branch file pointing to same commit as current branch
+        // create new branch file pointing to same commit as current branch
         Utils::clearAndPushLine(fs::path(".minigit/heads/" + newBranchName),
                                 baseCommitId);
 
@@ -83,8 +83,6 @@ void BranchCommand::branchCommandsExecute(
         }
 
         std::string wannaDeleteBranch = args[2];
-        fs::path currentBranchPath = fs::path(".minigit/currentBranch");
-        std::string currentBranchName = Utils::getLine(currentBranchPath);
 
         if (wannaDeleteBranch == "main") {
             std::cout << "You cannot delete the 'main' branch.\n";
@@ -116,6 +114,24 @@ void BranchCommand::branchCommandsExecute(
         }
 
         std::cout << "Invalid usage of 'list'.\n";
+        description();
+        return;
+    }
+
+    else if (command == "switch") {
+        fs::path headsDir = ".minigit/heads";
+        std::string switchedToBranch = args[2];
+
+        if (args.size() >= 3) {
+            if (Utils::fileNameExists(headsDir, switchedToBranch)) {
+                Utils::clearAndPushLine(currentBranchPath, switchedToBranch);
+            } else {
+                std::cout << "Active Branch: " << switchedToBranch;
+                return;
+            }
+        }
+
+        std::cout << "Invalid usage of 'switch'.\n";
         description();
         return;
     }
