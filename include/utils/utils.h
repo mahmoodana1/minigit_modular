@@ -14,4 +14,5 @@ bool exists(const fs::path &path);
 std::string getLine(const fs::path &path);
 void clearAndPushLine(const fs::path &path, std::string line);
 bool fileNameExists(const fs::path &path, std::string name);
+void printFilesInDirectory(const fs::path &path, bool branches = false);
 } // namespace Utils

@@ -115,6 +115,28 @@ bool fileNameExists(const fs::path &path, std::string name) {
     return false;
 }
 
+void printFilesInDirectory(const fs::path &path, bool branches) {
+    std::ifstream file(path);
+
+    if (file.is_open()) {
+        for (const fs::directory_entry &entry : fs::directory_iterator(path)) {
+            char prefix = ' ';
+            if (branches) {
+                std::string currentBranchName =
+                    Utils::getLine(".minigit/currentBranch");
+                if (currentBranchName == entry.path().filename()) {
+                    prefix = '*';
+                }
+            }
+            std::cout << prefix << entry.path().filename().string() << '\n';
+        }
+        file.close();
+    } else {
+        std::cout << "Failed to open file:" << path.string() << '\n';
+    }
+
+    return;
+}
 bool exists(const fs::path &path) { return fs::exists(path); }
 
 } // namespace Utils
