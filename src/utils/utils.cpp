@@ -105,6 +105,16 @@ void clearAndPushLine(const fs::path &path, std::string line) {
     }
 }
 
+bool fileNameExists(const fs::path &path, std::string name) {
+    for (const fs::directory_entry &entry : fs::directory_iterator(path)) {
+        if (entry.path().filename() == name) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool exists(const fs::path &path) { return fs::exists(path); }
 
 } // namespace Utils
