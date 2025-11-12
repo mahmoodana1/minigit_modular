@@ -120,13 +120,15 @@ void BranchCommand::branchCommandsExecute(
 
     else if (command == "switch") {
         fs::path headsDir = ".minigit/heads";
-        std::string switchedToBranch = args[2];
 
         if (args.size() >= 3) {
+            std::string switchedToBranch = args[2];
             if (Utils::fileNameExists(headsDir, switchedToBranch)) {
                 Utils::clearAndPushLine(currentBranchPath, switchedToBranch);
+                std::cout << "Active Branch: " << switchedToBranch << '\n';
+                return;
             } else {
-                std::cout << "Active Branch: " << switchedToBranch;
+                std::cout << "Branch '" << switchedToBranch << "' not found.\n";
                 return;
             }
         }
