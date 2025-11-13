@@ -67,7 +67,9 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
     Utils::removeDir(src);
     fs::create_directories(src);
 
+    // info file
     std::ofstream info(".minigit/commits/" + commitId + "/info");
+
     if (info.is_open()) {
         info << "Commit ID: " << commitId << "\n";
         info << "Message: "
@@ -82,11 +84,25 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
         }
     }
 
+    // refs : refrences file
+    fs::path currentBranchPath = ".minigit/currentBranch";
+    std::string currentBranchName = Utils::getLine(currentBranchPath);
+    std::string previousCommitId =
+        Utils::getLine(fs::path(".minigit/heads/" + currentBranchName));
+    std::ofstream refs(".minigit/commits/" + commitId + "/refs");
+
+    if (refs.is_open()) {
+        refs << "Commit ID: " << commitId << "\n";
+        refs << "Previous Commit ID: " << previousCommitId;
+    }
+
     std::cout << "Commit pushed to commits directory with id: " << commitId
               << '\n';
 
     fs::path branchNamePath = ".minigit/currentBranch";
     std::string branchName = Utils::getLine(branchNamePath);
+
+    // headMoves after refs is created
     headMove(branchName, commitId);
 }
 
