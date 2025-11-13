@@ -31,8 +31,8 @@ Description:
   Records changes from the staging area (index) into a new commit.
 
 Examples:
-  minigit commit -m "Initial commit"
-  minigit commit -m "Fix bug in AddCommand"
+  minigit commit -m Initial commit
+  minigit commit -m Fix bug in AddCommand
 )";
 }
 
@@ -103,14 +103,22 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
     std::string branchName = Utils::getLine(branchNamePath);
 
     // logs: append commit to logs file
-    std::ofstream file(".minigit/logs/commits_refs", std::ios::app);
-    if (!file) {
+    std::ofstream commits_refs(".minigit/logs/commits_refs", std::ios::app);
+    if (!commits_refs) {
         std::cout << "Failed to open '.minigit/logs/commits_refs'.\n";
         return;
     }
-    file << previousCommitId << ' ' << commitId << '\n';
+    commits_refs << previousCommitId << ' ' << commitId << '\n';
 
-    // headMoves after refs is created
+    std::ofstream heads(".minigit/logs/" + currentBranchName, std::ios::app);
+    if (!commits_refs) {
+        std::cout << "Failed to open '.minigit/logs/" << currentBranchName
+                  << "'\n";
+        return;
+    }
+    heads << previousCommitId << ' ' << commitId << '\n';
+
+    // headMoves after refs logging
     headMove(branchName, commitId);
 }
 
