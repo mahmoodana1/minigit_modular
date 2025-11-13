@@ -92,8 +92,8 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
     std::ofstream refs(".minigit/commits/" + commitId + "/refs");
 
     if (refs.is_open()) {
-        refs << "Commit ID: " << commitId << "\n";
-        refs << "Previous Commit ID: " << previousCommitId;
+        refs << "Previous Commit ID: " << previousCommitId << '\n';
+        refs << "Commit ID: " << commitId;
     }
 
     std::cout << "Commit pushed to commits directory with id: " << commitId
