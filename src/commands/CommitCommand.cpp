@@ -103,16 +103,20 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
     std::string branchName = Utils::getLine(branchNamePath);
 
     // logs: append commit to logs file
+    Utils::ensureDir(fs::path(".minigit/logs/heads"));
     std::ofstream commits_refs(".minigit/logs/commits_refs", std::ios::app);
+
     if (!commits_refs) {
         std::cout << "Failed to open '.minigit/logs/commits_refs'.\n";
         return;
     }
-    commits_refs << previousCommitId << ' ' << commitId << '\n';
+    commits_refs << previousCommitId << ' ' << commitId << currentBranchName
+                 << '\n';
 
-    std::ofstream heads(".minigit/logs/" + currentBranchName, std::ios::app);
+    std::ofstream heads(".minigit/logs/heads/" + currentBranchName,
+                        std::ios::app);
     if (!commits_refs) {
-        std::cout << "Failed to open '.minigit/logs/" << currentBranchName
+        std::cout << "Failed to open '.minigit/logs/heads/" << currentBranchName
                   << "'\n";
         return;
     }
