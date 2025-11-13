@@ -111,7 +111,7 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
         return;
     }
     commits_refs << previousCommitId << ' ' << commitId << currentBranchName
-                 << '\n';
+                 << " \n";
 
     std::ofstream heads(".minigit/logs/heads/" + currentBranchName,
                         std::ios::app);
@@ -120,7 +120,7 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
                   << "'\n";
         return;
     }
-    heads << previousCommitId << ' ' << commitId << '\n';
+    heads << previousCommitId << ' ' << commitId << " \n";
 
     // headMoves after refs logging
     headMove(branchName, commitId);

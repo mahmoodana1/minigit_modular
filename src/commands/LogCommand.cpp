@@ -37,7 +37,6 @@ void LogCommand::execute(const std::vector<std::string> &args) {
     }
 
     if (args.size() == 2 && args[1] == "all") {
-        std::cout << "All Logs\n";
 
     } else if (args.size() == 1) {
         std::cout << "Branch Logs\n";
