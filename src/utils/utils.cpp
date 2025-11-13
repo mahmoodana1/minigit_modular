@@ -137,6 +137,29 @@ void printFilesInDirectory(const fs::path &path, bool branches) {
 
     return;
 }
+
+std::vector<std::string> readLines(const fs::path &path) {
+    std::ifstream file(path);
+    std::vector<std::string> parts;
+
+    if (!file.is_open()) {
+        std::cout << "Failed to open file: " << path.string() << '\n';
+        return parts;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::stringstream ss(line);
+        std::string word;
+
+        while (ss >> word) {
+            parts.push_back(word);
+        }
+    }
+
+    return parts;
+}
+
 bool exists(const fs::path &path) { return fs::exists(path); }
 
 } // namespace Utils

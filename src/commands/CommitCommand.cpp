@@ -110,14 +110,14 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
         std::cout << "Failed to open '.minigit/logs/commits_refs'.\n";
         return;
     }
-    commits_refs << previousCommitId << ' ' << commitId << currentBranchName
-                 << " \n";
+    commits_refs << previousCommitId << ' ' << commitId << ' '
+                 << currentBranchName << "\n";
 
     std::ofstream heads(".minigit/logs/heads/" + currentBranchName,
                         std::ios::app);
     if (!commits_refs) {
         std::cout << "Failed to open '.minigit/logs/heads/" << currentBranchName
-                  << "'\n";
+                  << "' \n";
         return;
     }
     heads << previousCommitId << ' ' << commitId << " \n";

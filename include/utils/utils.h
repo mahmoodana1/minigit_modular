@@ -1,6 +1,7 @@
 #pragma once
 #include <filesystem>
 #include <string>
+#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -15,4 +16,6 @@ std::string getLine(const fs::path &path);
 void clearAndPushLine(const fs::path &path, std::string line);
 bool fileNameExists(const fs::path &path, std::string name);
 void printFilesInDirectory(const fs::path &path, bool branches = false);
+std::vector<std::string> readLines(const fs::path &path);
+
 } // namespace Utils
