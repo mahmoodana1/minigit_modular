@@ -102,6 +102,14 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
     fs::path branchNamePath = ".minigit/currentBranch";
     std::string branchName = Utils::getLine(branchNamePath);
 
+    // logs: append commit to logs file
+    std::ofstream file(".minigit/logs/commits_refs", std::ios::app);
+    if (!file) {
+        std::cout << "Failed to open '.minigit/logs/commits_refs'.\n";
+        return;
+    }
+    file << previousCommitId << ' ' << commitId << '\n';
+
     // headMoves after refs is created
     headMove(branchName, commitId);
 }
