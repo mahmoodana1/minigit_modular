@@ -1,4 +1,5 @@
 #pragma once
+#include "../core/CommandRegistry.h"
 #include "Command.h"
 
 class LogCommand : public Command {

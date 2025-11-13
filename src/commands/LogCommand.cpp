@@ -1,9 +1,11 @@
 #include "../../include/commands/LogCommand.h"
+#include <iostream>
+#include <memory>
 
 std::string LogCommand::getName() { return "log"; }
 
 bool LogCommand::checkArgs(const std::vector<std::string> &args) {
-    return (args.size() == 2);
+    return (args.size() <= 2);
 }
 
 void LogCommand::description() {
@@ -27,3 +29,31 @@ Details:
   - Each commit displays: ID, message, author, date, and files.
 )";
 }
+
+void LogCommand::execute(const std::vector<std::string> &args) {
+    if (!checkArgs(args)) {
+        description();
+        return;
+    }
+
+    if (args.size() == 2 && args[1] == "all") {
+        std::cout << "All Logs\n";
+
+    } else if (args.size() == 1) {
+        std::cout << "Branch Logs\n";
+    } else {
+        description();
+    }
+
+    return;
+}
+
+namespace {
+struct LogCommandRegisterar {
+    LogCommandRegisterar() {
+        CommandRegistry::getInstance().registerCommand(
+            "log", std::make_unique<LogCommand>());
+    }
+};
+static LogCommandRegisterar registerar;
+} // namespace
