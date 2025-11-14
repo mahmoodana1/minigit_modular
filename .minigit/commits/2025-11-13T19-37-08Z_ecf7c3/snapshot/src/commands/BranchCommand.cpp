@@ -1,4 +1,4 @@
-#include "../../include/commands/BranchCommand.h"
+#include "../../include/commands/branchCommand.h"
 #include "../../include/utils/utils.h"
 #include <filesystem>
 #include <iostream>
@@ -143,19 +143,6 @@ void BranchCommand::branchCommandsExecute(
         description();
         return;
     }
-}
-
-void BranchCommand::switchCommand(const fs::path &path,
-                                  std::string branchName) {
-    std::string newHeadCommitId =
-        Utils::getLine(".minigit/heads/" + branchName);
-    if (newHeadCommitId.empty()) {
-        std::cout << "No base for branch: " << branchName << ".\n";
-        return;
-    }
-
-    fs::path newBaseCommitFilesPath =
-        fs::path(".minigit/commits/" + newHeadCommitId + "/snapshot");
 }
 namespace {
 

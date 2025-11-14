@@ -34,25 +34,6 @@ void copyDirRecursive(const fs::path &src, const fs::path &dest,
     }
 }
 
-void deleteDirRecursive(const fs::path &src, bool skipMeta) {
-    fs::path absSrc = fs::absolute(src);
-
-    if (!fs::exists(absSrc) || !fs::is_directory(absSrc)) {
-        std::cerr << "Source path invalid: " << absSrc << "\n";
-        return;
-    }
-
-    for (const auto &entry : fs::recursive_directory_iterator(absSrc)) {
-        const auto &path = entry.path();
-        auto relativePath = fs::relative(path, absSrc);
-
-        if (skipMeta && (path.string().find(".git") != std::string::npos ||
-                         path.string().find(".minigit") != std::string::npos))
-            continue;
-
-        std::cout << path.string() << ".\n";
-    }
-}
 void copyFileSafe(const fs::path &src, const fs::path &destRoot) {
     try {
         if (!fs::exists(src) || !fs::is_regular_file(src)) {
