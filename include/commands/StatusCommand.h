@@ -6,5 +6,6 @@ class StatusCommand : public Command {
     void execute(const std::vector<std::string> &args) override;
     bool checkArgs(const std::vector<std::string> &args) override;
     void description() override;
+    std::vector<std::string> compareRoorToIndex();
     std::string getName() override;
 };

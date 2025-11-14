@@ -1,8 +1,10 @@
 #include "../../include/commands/StatusCommand.h"
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <sys/types.h>
+#include <vector>
 
 std::string StatusCommand::getName() { return "add"; }
 
@@ -31,11 +33,44 @@ Examples:
 )";
 }
 
+std::vector<std::string> StatusCommand::compareRoorToIndex() {
+    std::vector<std::string> untrackedPaths;
+    std::vector<std::string> rootPaths;
+    std::vector<std::string> indexPaths;
+
+    for (const fs::directory_entry &entry :
+         fs::recursive_directory_iterator(".")) {
+        if ((entry.path().string().find(".git") != 0)) {
+            continue;
+        }
+        rootPaths.push_back(entry.path());
+    }
+
+    for (const fs::directory_entry &entry :
+         fs::recursive_directory_iterator(".minigit/index")) {
+        indexPaths.push_back(entry.path());
+    }
+
+    std::cout << "Root Paths: \n";
+    for (int i = 0; i < rootPaths.size(); i++) {
+        std::cout << rootPaths[i] << '\n';
+    }
+
+    std::cout << "Index Paths: \n";
+    for (int i = 0; i < indexPaths.size(); i++) {
+        std::cout << indexPaths[i] << '\n';
+    }
+
+    return untrackedPaths;
+}
+
 void StatusCommand::execute(const std::vector<std::string> &args) {
     if (!checkArgs(args)) {
         description();
         return;
     }
+
+    StatusCommand::compareRoorToIndex();
 }
 
 namespace {
