@@ -16,20 +16,20 @@ void copyDirRecursive(const fs::path &src, const fs::path &dest,
     }
 
     for (const auto &entry : fs::recursive_directory_iterator(absSrc)) {
-        const auto &path = entry.path();
-        auto relativePath = fs::relative(path, absSrc);
-        fs::path targetPath = absDest / relativePath;
+        fs::path path = entry.path();
+        fs::path relativePath = fs::relative(path, absSrc);
+        fs::path target = absDest / relativePath;
 
-        if (skipMeta && (path.string().find(".git") != std::string::npos ||
-                         path.string().find(".minigit") != std::string::npos))
+        // FIXED skipMeta (checks only folder names, not full absolute path)
+        std::string name = path.filename().string();
+        if (skipMeta && (name == ".git" || name == ".minigit"))
             continue;
 
         if (fs::is_directory(path)) {
-            fs::create_directories(targetPath);
+            fs::create_directories(target);
         } else if (fs::is_regular_file(path)) {
-            fs::create_directories(targetPath.parent_path());
-            fs::copy_file(path, targetPath,
-                          fs::copy_options::overwrite_existing);
+            fs::create_directories(target.parent_path());
+            fs::copy_file(path, target, fs::copy_options::overwrite_existing);
         }
     }
 }
