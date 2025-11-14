@@ -1,5 +1,6 @@
 #include "../../include/commands/StatusCommand.h"
 #include <iostream>
+#include <memory>
 #include <string>
 #include <sys/types.h>
 
@@ -36,3 +37,13 @@ void StatusCommand::execute(const std::vector<std::string> &args) {
         return;
     }
 }
+
+namespace {
+struct StatusCommandRegisterar {
+    StatusCommandRegisterar() {
+        CommandRegistry::getInstance().registerCommand(
+            "status", std::make_unique<StatusCommand>());
+    }
+};
+static StatusCommandRegisterar registerar;
+} // namespace
