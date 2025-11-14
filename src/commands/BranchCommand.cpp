@@ -124,6 +124,8 @@ void BranchCommand::branchCommandsExecute(
         if (args.size() >= 3) {
             std::string switchedToBranch = args[2];
             if (Utils::fileNameExists(headsDir, switchedToBranch)) {
+                BranchCommand::switchCommand(currentBranchPath,
+                                             switchedToBranch);
                 Utils::clearAndPushLine(currentBranchPath, switchedToBranch);
                 std::cout << "Active Branch: " << switchedToBranch << '\n';
                 return;
@@ -156,6 +158,7 @@ void BranchCommand::switchCommand(const fs::path &path,
 
     fs::path newBaseCommitFilesPath =
         fs::path(".minigit/commits/" + newHeadCommitId + "/snapshot");
+    Utils::deleteDirRecursive(".");
 }
 namespace {
 
