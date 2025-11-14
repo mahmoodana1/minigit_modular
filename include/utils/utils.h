@@ -18,5 +18,5 @@ void clearAndPushLine(const fs::path &path, std::string line);
 bool fileNameExists(const fs::path &path, std::string name);
 void printFilesInDirectory(const fs::path &path, bool branches = false);
 std::vector<std::string> readLines(const fs::path &path);
-
+bool startsWith(const std::string &s, const std::string &prefix);
 } // namespace Utils
