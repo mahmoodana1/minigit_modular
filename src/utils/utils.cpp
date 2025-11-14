@@ -50,7 +50,9 @@ void deleteDirRecursive(const fs::path &src, bool skipMeta) {
                          path.string().find(".minigit") != std::string::npos))
             continue;
 
-        fs::remove_all(path);
+        if (fs::is_regular_file(path)) {
+            fs::remove(path);
+        }
     }
 }
 void copyFileSafe(const fs::path &src, const fs::path &destRoot) {
