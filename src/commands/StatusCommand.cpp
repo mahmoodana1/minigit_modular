@@ -1,9 +1,11 @@
 #include "../../include/commands/StatusCommand.h"
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <sys/types.h>
+#include <utility>
 #include <vector>
 
 std::string StatusCommand::getName() { return "add"; }
@@ -33,35 +35,69 @@ Examples:
 )";
 }
 
-std::vector<std::string> StatusCommand::compareRoorToIndex() {
-    std::vector<std::string> untrackedPaths;
-    std::vector<std::string> rootPaths;
-    std::vector<std::string> indexPaths;
+std::vector<std::pair<fs::path, std::string>> StatusCommand::compareFiles() {
+    std::vector<std::pair<fs::path, std::string>> result;
+    std::vector<fs::path> rootPaths;
+    std::vector<fs::path> indexPaths;
+    std::vector<fs::path> lastCommitPaths;
+
+    std::string currentBranchName = Utils::getLine(".minigit/currentBranch");
+    std::string lastCommitId =
+        Utils::getLine(".minigit/heads/" + currentBranchName);
+    fs::path lastCommitFilesPaths =
+        fs::path(".minigit/commits/" + lastCommitId + "/snapshot");
 
     for (const fs::directory_entry &entry :
          fs::recursive_directory_iterator(".")) {
-        if ((entry.path().string().find(".git") != 0)) {
+        if (Utils::startsWith(entry.path().string(), "./.git") ||
+            Utils::startsWith(entry.path().string(), "./.minigit")) {
             continue;
         }
-        rootPaths.push_back(entry.path());
+        if (entry.is_regular_file())
+            rootPaths.push_back(entry.path());
     }
 
     for (const fs::directory_entry &entry :
          fs::recursive_directory_iterator(".minigit/index")) {
-        indexPaths.push_back(entry.path());
+        if (entry.is_regular_file())
+            indexPaths.push_back(entry.path());
     }
 
-    std::cout << "Root Paths: \n";
+    for (const fs::directory_entry &entry :
+         fs::recursive_directory_iterator(lastCommitFilesPaths)) {
+        if (entry.is_regular_file())
+            lastCommitPaths.push_back(entry.path());
+    }
+
     for (int i = 0; i < rootPaths.size(); i++) {
-        std::cout << rootPaths[i] << '\n';
+        bool found = false;
+        for (int k = 0; k < lastCommitPaths.size(); k++) {
+            if (rootPaths[i].filename() == lastCommitPaths[k].filename()) {
+                if (!StatusCommand::checkFilesEqual(rootPaths[i],
+                                                    lastCommitPaths[k])) {
+                    result.push_back({rootPaths[i], "changed"});
+                    found = true;
+                }
+            }
+        }
+
+        if (!found) {
+            result.push_back({rootPaths[i], "untracked"});
+        }
     }
 
-    std::cout << "Index Paths: \n";
-    for (int i = 0; i < indexPaths.size(); i++) {
-        std::cout << indexPaths[i] << '\n';
+    for (int i = 0; i < rootPaths.size(); i++) {
+        for (int k = 0; k < lastCommitPaths.size(); k++) {
+            if (rootPaths[i].filename() == lastCommitPaths[k].filename()) {
+                if (!StatusCommand::checkFilesEqual(rootPaths[i],
+                                                    lastCommitPaths[k])) {
+                    result.push_back({rootPaths[i], "deleted"});
+                }
+            }
+        }
     }
 
-    return untrackedPaths;
+    return result;
 }
 
 void StatusCommand::execute(const std::vector<std::string> &args) {
@@ -70,7 +106,25 @@ void StatusCommand::execute(const std::vector<std::string> &args) {
         return;
     }
 
-    StatusCommand::compareRoorToIndex();
+    StatusCommand::compareFiles();
+}
+
+bool checkFilesEqual(const fs::path &path1, const fs::path path2) {
+    if (fs::file_size(path1) != fs::file_size(path2)) {
+        return false;
+    }
+
+    std::ifstream fa(path1, std::ios::binary);
+    std::ifstream fb(path2, std::ios::binary);
+
+    if (!fa || !fb)
+        return false;
+
+    std::istreambuf_iterator<char> ita(fa);
+    std::istreambuf_iterator<char> itb(fb);
+    std::istreambuf_iterator<char> end;
+
+    return std::equal(ita, end, itb);
 }
 
 namespace {
