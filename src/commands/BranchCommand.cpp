@@ -158,7 +158,24 @@ void BranchCommand::switchCommand(const fs::path &path,
 
     fs::path newBaseCommitFilesPath =
         fs::path(".minigit/commits/" + newHeadCommitId + "/snapshot");
-    Utils::deleteDirRecursive(".");
+    char choice;
+
+    do {
+        std::cout << "Switching branches will discard all unstaged changes.\n";
+        std::cout << "Are you sure you want to continue? (y/n): ";
+        std::cin >> choice;
+
+        choice = std::tolower(choice);
+
+    } while (choice != 'y' && choice != 'n');
+
+    if (choice == 'y') {
+        Utils::deleteDirRecursive(".");
+        Utils::copyDirRecursive(newBaseCommitFilesPath, ".");
+        std::cout << "Switching branch...\n";
+    } else {
+        std::cout << "Branch switch cancelled.\n";
+    }
 }
 namespace {
 
