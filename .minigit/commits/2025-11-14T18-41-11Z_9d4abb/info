@@ -1,7 +1,7 @@
-Commit ID: 2025-11-14T18-36-51Z_a1cfe3
-Message: third 
+Commit ID: 2025-11-14T18-41-11Z_9d4abb
+Message: second 
 Author: mahmood
-Date: 2025-11-14 18:36:51 UTC
+Date: 2025-11-14 18:41:11 UTC
 Files committed:
   - .gitignore
   - include/core/CommandRegistry.h
@@ -9,6 +9,8 @@ Files committed:
   - include/commands/Command.h
   - include/commands/CommitCommand.h
   - include/commands/InitCommand.h
+  - include/commands/BranchCommand.h
+  - include/commands/AddCommand.h
   - include/commands/branchCommand.h
   - include/commands/StatusCommand.h
   - include/utils/utils.h
@@ -16,12 +18,6 @@ Files committed:
   - README.md
   - src/core/CommandRegistry.cpp
   - src/main.cpp
-  - src/commands/StatusCommand.cpp
-  - src/commands/AddCommand.cpp
-  - src/commands/LogCommand.cpp
-  - src/commands/InitCommand.cpp
-  - src/commands/BranchCommand.cpp
-  - src/commands/CommitCommand.cpp
   - src/utils/utils.cpp
   - src/utils/GeneratorUtils.cpp
   - build/minigit
