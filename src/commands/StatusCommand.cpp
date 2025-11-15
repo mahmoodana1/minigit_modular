@@ -94,7 +94,7 @@ std::string getStatusColor(const std::string &status) {
     return Colors::WHITE;
 }
 
-// Get status symbol for visual distinction
+// using AI
 std::string getStatusSymbol(const std::string &status) {
     if (status == "untracked")
         return "?";
