@@ -18,6 +18,8 @@ int main(int argc, char *argv[]) {
     if (commandRegistry.getCommand(commandName) == nullptr) {
         std::cout << "Unknown command: " << commandName << "\n"
                   << "Usage: minigit <command> [args...]\n";
+        std::cout << "Commands: \n"
+                  << "'init'\n'add'\n'commit'\n'branch'\n'log'\n'status'\n";
         return 1;
     }
 
