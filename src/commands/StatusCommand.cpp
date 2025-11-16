@@ -1,6 +1,5 @@
 #include "../../include/commands/StatusCommand.h"
 #include <filesystem>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <map>
@@ -188,7 +187,7 @@ void printResults(const std::vector<std::pair<fs::path, std::string>> &result) {
     std::cout << "\n";
 }
 
-std::vector<std::pair<fs::path, std::string>> StatusCommand::compareFiles() {
+void StatusCommand::compareFiles() {
     std::vector<std::pair<fs::path, std::string>> result;
     std::map<fs::path, FilesRootIndexCommit> comparisonMap;
 
@@ -261,7 +260,7 @@ std::vector<std::pair<fs::path, std::string>> StatusCommand::compareFiles() {
         }
         // clean or modified
         else if (inRoot && !inIndex && inCommit) {
-            if (checkFilesEqual(rootPath, commitPath)) {
+            if (Utils::checkFilesEqual(rootPath, commitPath)) {
                 status = "clean";
             } else {
                 status = "modified";
@@ -270,10 +269,8 @@ std::vector<std::pair<fs::path, std::string>> StatusCommand::compareFiles() {
         // compare tracked files
         else if (inRoot && inIndex && inCommit) {
 
-            bool rootVsIndex =
-                StatusCommand::checkFilesEqual(rootPath, indexPath);
-            bool indexVsCommit =
-                StatusCommand::checkFilesEqual(indexPath, commitPath);
+            bool rootVsIndex = Utils::checkFilesEqual(rootPath, indexPath);
+            bool indexVsCommit = Utils::checkFilesEqual(indexPath, commitPath);
 
             if (!rootVsIndex && indexVsCommit) {
                 status = "modified"; // working tree modified, not staged
@@ -290,7 +287,7 @@ std::vector<std::pair<fs::path, std::string>> StatusCommand::compareFiles() {
     }
 
     printResults(result);
-    return result;
+    return;
 }
 
 void StatusCommand::execute(const std::vector<std::string> &args) {
@@ -299,26 +296,14 @@ void StatusCommand::execute(const std::vector<std::string> &args) {
         return;
     }
 
-    StatusCommand::compareFiles();
-}
-
-bool StatusCommand::checkFilesEqual(const fs::path &path1,
-                                    const fs::path &path2) {
-    if (fs::file_size(path1) != fs::file_size(path2)) {
-        return false;
+    fs::path logRefsPath = fs::path(".minigit/logs/commits_refs");
+    std::string commitCheck = Utils::getLine(logRefsPath);
+    if (commitCheck.empty()) {
+        std::cout << "Please make a commit before checking the status.\n";
+        return;
     }
 
-    std::ifstream fa(path1, std::ios::binary);
-    std::ifstream fb(path2, std::ios::binary);
-
-    if (!fa || !fb)
-        return false;
-
-    std::istreambuf_iterator<char> ita(fa);
-    std::istreambuf_iterator<char> itb(fb);
-    std::istreambuf_iterator<char> end;
-
-    return std::equal(ita, end, itb);
+    StatusCommand::compareFiles();
 }
 
 namespace {

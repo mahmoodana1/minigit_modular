@@ -190,6 +190,23 @@ std::vector<std::string> readLines(const fs::path &path) {
     return parts;
 }
 
+bool checkFilesEqual(const fs::path &path1, const fs::path &path2) {
+    if (fs::file_size(path1) != fs::file_size(path2)) {
+        return false;
+    }
+
+    std::ifstream fa(path1, std::ios::binary);
+    std::ifstream fb(path2, std::ios::binary);
+
+    if (!fa || !fb)
+        return false;
+
+    std::istreambuf_iterator<char> ita(fa);
+    std::istreambuf_iterator<char> itb(fb);
+    std::istreambuf_iterator<char> end;
+
+    return std::equal(ita, end, itb);
+}
 bool exists(const fs::path &path) { return fs::exists(path); }
 
 } // namespace Utils
