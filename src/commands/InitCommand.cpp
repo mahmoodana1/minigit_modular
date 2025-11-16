@@ -47,9 +47,12 @@ void InitCommand::execute(const std::vector<std::string> &args) {
     Utils::ensureDir(".minigit/commits");
     Utils::ensureDir(".minigit/logs");
     Utils::ensureDir(".minigit/heads");
+    Utils::ensureDir(".minigit/branchesFilesTree/main");
 
     Utils::clearAndPushLine(".minigit/currentBranch", "main");
     Utils::clearAndPushLine(".minigit/heads/main", "none");
+
+    Utils::copyDirRecursive(".", ".minigit/branchesFilesTree/main");
 
     std::cout << "Initialized empty MiniGit repository.\n";
 }

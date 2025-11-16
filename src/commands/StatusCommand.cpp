@@ -18,7 +18,7 @@ bool StatusCommand::checkArgs(const std::vector<std::string> &args) {
 struct FilesRootIndexCommit {
     bool inRoot = false;
     bool inIndex = false;
-    bool inLastCommit = false;
+    bool inCommitTree = false;
 };
 
 void StatusCommand::description() {
@@ -192,11 +192,8 @@ void StatusCommand::compareFiles() {
     std::map<fs::path, FilesRootIndexCommit> comparisonMap;
 
     std::string currentBranchName = Utils::getLine(".minigit/currentBranch");
-    std::string lastCommitId =
-        Utils::getLine(".minigit/heads/" + currentBranchName);
-
-    fs::path lastCommitFilesPaths =
-        fs::path(".minigit/commits/" + lastCommitId + "/snapshot/");
+    fs::path branchFilesTree =
+        fs::path(".minigit/branchesFilesTree/" + currentBranchName);
 
     for (const auto &entry : fs::recursive_directory_iterator(".")) {
         if (Utils::startsWith(entry.path().string(), "./.git/") ||
@@ -217,10 +214,10 @@ void StatusCommand::compareFiles() {
     }
 
     for (const auto &entry :
-         fs::recursive_directory_iterator(lastCommitFilesPaths)) {
+         fs::recursive_directory_iterator(branchFilesTree)) {
         if (entry.is_regular_file()) {
-            comparisonMap[fs::relative(entry.path(), lastCommitFilesPaths)]
-                .inLastCommit = true;
+            comparisonMap[fs::relative(entry.path(), branchFilesTree)]
+                .inCommitTree = true;
         }
     }
 
@@ -230,11 +227,11 @@ void StatusCommand::compareFiles() {
 
         bool inRoot = node.second.inRoot;
         bool inIndex = node.second.inIndex;
-        bool inCommit = node.second.inLastCommit;
+        bool inCommit = node.second.inCommitTree;
 
         fs::path rootPath = filePath;
         fs::path indexPath = ".minigit/index/" + filePath.string();
-        fs::path commitPath = lastCommitFilesPaths / filePath;
+        fs::path commitPath = branchFilesTree / filePath;
 
         std::string status;
 
@@ -298,6 +295,7 @@ void StatusCommand::execute(const std::vector<std::string> &args) {
 
     fs::path logRefsPath = fs::path(".minigit/logs/commits_refs");
     std::string commitCheck = Utils::getLine(logRefsPath);
+
     if (commitCheck.empty()) {
         std::cout << "Please make a commit before checking the status.\n";
         return;

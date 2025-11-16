@@ -57,6 +57,11 @@ void BranchCommand::branchCommandsExecute(
         }
 
         std::string newBranchName = args[2];
+        std::string branchesFilesTreePath = ".minigit/branchesFilesTree/";
+        // copy branchesFilesTree
+        Utils::ensureDir(branchesFilesTreePath + newBranchName);
+        Utils::copyDirRecursive(branchesFilesTreePath + currentBranchName,
+                                branchesFilesTreePath + newBranchName);
 
         if (Utils::fileNameExists(fs::path(".minigit/heads"), newBranchName)) {
             std::cout << "Branch with name '" << newBranchName
@@ -96,6 +101,8 @@ void BranchCommand::branchCommandsExecute(
 
         fs::path branchFilePath = ".minigit/heads/" + wannaDeleteBranch;
         if (fs::remove(branchFilePath)) {
+            Utils::deleteDirRecursive(".minigit/branchesFilesTree/" +
+                                      currentBranchName);
             std::cout << "Branch '" << wannaDeleteBranch
                       << "' deleted successfully.\n";
         } else {

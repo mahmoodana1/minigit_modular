@@ -62,6 +62,8 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
         return;
     }
 
+    pushToFilesTree();
+
     Utils::ensureDir(commitPath);
     Utils::copyDirRecursive(src, commitPath, false);
     Utils::removeDir(src);
@@ -131,6 +133,16 @@ void CommitCommand::headMove(std::string branchName, std::string commitId) {
     fs::path headPath = ".minigit/heads/" + branchName;
     std::string firstLine = Utils::getLine(headPath);
     Utils::clearAndPushLine(headPath, commitId);
+}
+
+void CommitCommand::pushToFilesTree() {
+    fs::path branchNamePath = ".minigit/currentBranch";
+    std::string currentBranchName = Utils::getLine(branchNamePath);
+
+    Utils::ensureDir(".minigit/branchesFilesTree/" + currentBranchName);
+
+    Utils::copyDirRecursive(".minigit/index",
+                            ".minigit/branchesFilesTree/" + currentBranchName);
 }
 
 namespace {

@@ -7,5 +7,6 @@ class CommitCommand : public Command {
     bool checkArgs(const std::vector<std::string> &args) override;
     void description() override;
     std::string getName() override;
+    void pushToFilesTree();
     void headMove(std::string branchName, std::string commitId);
 };
