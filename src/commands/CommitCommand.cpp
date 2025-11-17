@@ -48,7 +48,6 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
     }
 
     std::string commitId = GeneratorUtils::generateCommitId();
-    std::string commitMessage = getCommitMessage(args);
 
     fs::path src = fs::path(".minigit/index");
     fs::path commitPath =
@@ -61,8 +60,21 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
                "./build/minigit add <options>\n";
         return;
     }
+    fs::path currentBranchPath = ".minigit/currentBranch";
+    std::string currentBranchName = Utils::getLine(currentBranchPath);
+    std::string commitMessage = getCommitMessage(args);
 
-    pushToFilesTree();
+    CommitCommand::commit(commitId, currentBranchName, commitMessage);
+}
+
+void CommitCommand::commit(const std::string commitId,
+                           const std::string branchName,
+                           const std::string &commitMessage) {
+    fs::path src = fs::path(".minigit/index");
+    fs::path commitPath =
+        fs::path(".minigit/commits/" + commitId + "/snapshot");
+
+    pushToFilesTree(branchName);
 
     Utils::ensureDir(commitPath);
     Utils::copyDirRecursive(src, commitPath, false);
@@ -75,7 +87,8 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
     if (info.is_open()) {
         info << "Commit ID: " << commitId << "\n";
         info << "Message: "
-             << (args.size() > 1 ? commitMessage : "(no message)") << "\n";
+             << (commitMessage.empty() ? commitMessage : "(no message)")
+             << "\n";
         info << "Author: " << std::getenv("USER") << "\n";
         info << "Date: " << GeneratorUtils::getCurrentTimeUTC() << "\n";
         info << "Files committed:\n";
@@ -87,10 +100,8 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
     }
 
     // refs : refrences file
-    fs::path currentBranchPath = ".minigit/currentBranch";
-    std::string currentBranchName = Utils::getLine(currentBranchPath);
     std::string previousCommitId =
-        Utils::getLine(fs::path(".minigit/heads/" + currentBranchName));
+        Utils::getLine(fs::path(".minigit/heads/" + branchName));
     std::ofstream refs(".minigit/commits/" + commitId + "/refs");
 
     if (refs.is_open()) {
@@ -100,10 +111,24 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
 
     std::cout << "Commit pushed to commits directory with id: " << commitId
               << '\n';
-
-    fs::path branchNamePath = ".minigit/currentBranch";
-    std::string branchName = Utils::getLine(branchNamePath);
-
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
     // logs: append commit to logs file
     Utils::ensureDir(fs::path(".minigit/logs/heads"));
     std::ofstream commits_refs(".minigit/logs/commits_refs", std::ios::app);
@@ -112,13 +137,12 @@ void CommitCommand::execute(const std::vector<std::string> &args) {
         std::cout << "Failed to open '.minigit/logs/commits_refs'.\n";
         return;
     }
-    commits_refs << previousCommitId << ' ' << commitId << ' '
-                 << currentBranchName << "\n";
+    commits_refs << previousCommitId << ' ' << commitId << ' ' << branchName
+                 << "\n";
 
-    std::ofstream heads(".minigit/logs/heads/" + currentBranchName,
-                        std::ios::app);
+    std::ofstream heads(".minigit/logs/heads/" + branchName, std::ios::app);
     if (!commits_refs) {
-        std::cout << "Failed to open '.minigit/logs/heads/" << currentBranchName
+        std::cout << "Failed to open '.minigit/logs/heads/" << branchName
                   << "' \n";
         return;
     }
@@ -135,14 +159,12 @@ void CommitCommand::headMove(std::string branchName, std::string commitId) {
     Utils::clearAndPushLine(headPath, commitId);
 }
 
-void CommitCommand::pushToFilesTree() {
-    fs::path branchNamePath = ".minigit/currentBranch";
-    std::string currentBranchName = Utils::getLine(branchNamePath);
+void CommitCommand::pushToFilesTree(const std::string &branchName) {
 
-    Utils::ensureDir(".minigit/branchesFilesTree/" + currentBranchName);
+    Utils::ensureDir(".minigit/branchesFilesTree/" + branchName);
 
     Utils::copyDirRecursive(".minigit/index",
-                            ".minigit/branchesFilesTree/" + currentBranchName);
+                            ".minigit/branchesFilesTree/" + branchName);
 }
 
 namespace {
