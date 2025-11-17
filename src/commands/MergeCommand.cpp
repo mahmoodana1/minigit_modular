@@ -30,7 +30,16 @@ Details:
 )";
 }
 
-void MergeCommand::execute(const std::vector<std::string> &args) {}
+void MergeCommand::execute(const std::vector<std::string> &args) {
+    // check branchesFilesTree for both <mergeged into> and <merged> folders
+    // if there is new files from merged simply add them to the stagin area
+    // if there are same files with different contents ask the uesr wich version
+    // of the file he would liek to keep and add to staging area after all files
+    // have been gone through, ask user for a merge commit message merge the
+    // branches and commit a mergeCommit to the <merged into> branch make sure
+    // to update the branchesFilesTree for <merged into> branch and head,
+    // logs .....
+}
 
 namespace {
 struct MergeCommandRegisterar {
