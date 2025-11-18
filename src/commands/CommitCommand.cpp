@@ -132,8 +132,9 @@ void CommitCommand::logCommit(const std::string &commitMessage,
     commits_refs << previousCommitId << ' ' << commitId << ' ' << branchName
                  << "\n";
 
+    Utils::ensureDir(".minigit/logs/heads/");
     std::ofstream heads(".minigit/logs/heads/" + branchName, std::ios::app);
-    if (!commits_refs) {
+    if (!heads) {
         std::cout << "Failed to open '.minigit/logs/heads/" << branchName
                   << "' \n";
         return;

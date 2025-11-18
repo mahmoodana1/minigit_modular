@@ -75,7 +75,6 @@ void BranchCommand::branchCommandsExecute(
         // create new branch file pointing to same commit as current branch
         Utils::clearAndPushLine(fs::path(".minigit/heads/" + newBranchName),
                                 baseCommitId);
-
         std::cout << "Branch '" << newBranchName << "' created successfully.\n";
         return;
     }

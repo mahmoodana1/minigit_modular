@@ -207,6 +207,10 @@ bool checkFilesEqual(const fs::path &path1, const fs::path &path2) {
 
     return std::equal(ita, end, itb);
 }
+
+bool checkFileBigger(const fs::path &path1, const fs::path &path2) {
+    return (fs::file_size(path1) > fs::file_size(path2));
+}
 bool exists(const fs::path &path) { return fs::exists(path); }
 
 } // namespace Utils

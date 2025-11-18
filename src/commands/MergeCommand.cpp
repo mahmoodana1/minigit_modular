@@ -1,7 +1,7 @@
 #include "../../include/commands/MergeCommand.h"
 #include <filesystem>
+#include <fstream>
 #include <iostream>
-#include <memory>
 #include <string>
 
 std::string MergeCommand::getName() { return "merge"; };
@@ -71,7 +71,26 @@ void MergeCommand::execute(const std::vector<std::string> &args) {
         Utils::getLine(".minigit/logs/heads/" + mergedBranchName)
             .substr(0, commitIdLength);
 
-    if (mergedBranchBaseCommitId == mergedIntoBranchLastCommitId) {
+    bool branchesAreEqual = true;
+    for (const fs::directory_entry &entry : fs::recursive_directory_iterator(
+             ".minigit/branchesFilesTree/" + mergedBranchName)) {
+        fs::path relativePath = fs::relative(
+            entry.path(), ".minigit/branchesFilesTree/" + mergedBranchName);
+        fs::path mergedIntoFilesTreePath =
+            ".minigit/branchesFilesTree/" + currentBranchName;
+
+        if (fs::is_regular_file(entry.path())) {
+            if (fs::is_regular_file(mergedIntoFilesTreePath / relativePath)) {
+                if (Utils::checkFileBigger(
+                        mergedIntoFilesTreePath / relativePath, entry.path())) {
+                    branchesAreEqual = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (branchesAreEqual) {
         MergeCommand::fastForwardMerge(currentBranchName, mergedBranchName);
     } else {
         std::cout << "You cannot do Fast-forward merge. \n";
@@ -104,31 +123,35 @@ void MergeCommand::execute(const std::vector<std::string> &args) {
 
 void MergeCommand::fastForwardMerge(const std::string &mergedIntoBranchName,
                                     const std::string &mergedBranchName) {
-    std::string message;
-    do {
-        std::cout << "Merge message: ";
-        std::getline(std::cin, message);
-    } while (message.empty());
 
     fs::path indexDirPath = ".minigit/index";
     fs::path mergedBranchFilesTreePath =
         ".minigit/branchesFilesTree/" + mergedBranchName;
 
-    std::string commitId = GeneratorUtils::generateCommitId();
+    fs::path mergedIntoBranchHeadLogs =
+        ".minigit/logs/heads/" + mergedIntoBranchName;
+    fs::path mergedBranchHeadLogs = ".minigit/logs/heads/" + mergedBranchName;
+
+    std::ifstream in(mergedBranchHeadLogs);
+    std::ofstream out(mergedIntoBranchHeadLogs);
+
+    if (!in.is_open() || !out.is_open()) {
+        std::cout << "Failed Merge.\n";
+        return;
+    }
+
+    std::string line;
+    while (std::getline(in, line)) {
+        out << line << "\n";
+    }
 
     // clear index Directory
     Utils::removeDir(indexDirPath);
     Utils::ensureDir(indexDirPath);
 
-    // commit for the <merged> branch
-    CommitCommand::commit(commitId, mergedBranchName, message);
-    Utils::copyDirRecursive(mergedBranchFilesTreePath, indexDirPath);
-    // commit for the currentBranch aka <mergedInto> branch
-    Utils::copyDirRecursive(mergedBranchFilesTreePath, indexDirPath);
-    CommitCommand::commit(commitId, mergedIntoBranchName, message);
-
     Utils::copyDirRecursive(mergedBranchFilesTreePath, ".");
 }
+
 void MergeCommand ::indirectMerge(const std::string &mergedIntoBranchName,
                                   const std::string &mergedBranchName) {
     fs::path mgitTmp = ".minigit/tmp";
@@ -148,8 +171,8 @@ void MergeCommand ::indirectMerge(const std::string &mergedIntoBranchName,
             std::string userAnswear = "a";
             std::cout << "Conflict fount in file: "
                       << mgitTmp.filename().string() << ".\n";
-            std::cout
-                << "Witch version do you wanna keep --default is a, (a, b)?\n";
+            std::cout << "Witch version do you wanna keep --default is a, "
+                         "(a, b)?\n";
             std::cout << "a - " << mergedIntoBranchName << " version.\n"
                       << "b - " << mergedBranchName << " version.\n"
                       << "e - " << "exit.\n";
