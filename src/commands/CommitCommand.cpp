@@ -79,15 +79,25 @@ void CommitCommand::commit(const std::string commitId,
     Utils::ensureDir(commitPath);
     Utils::copyDirRecursive(src, commitPath, false);
     Utils::removeDir(src);
-    fs::create_directories(src);
+    Utils::ensureDir(src);
 
+    CommitCommand::logCommit(commitMessage, commitId, branchName);
+
+    // headMoves after refs logging
+    headMove(branchName, commitId);
+}
+void CommitCommand::logCommit(const std::string &commitMessage,
+                              const std::string &commitId,
+                              const std::string &branchName) {
     // info file
     std::ofstream info(".minigit/commits/" + commitId + "/info");
+    fs::path commitPath =
+        fs::path(".minigit/commits/" + commitId + "/snapshot");
 
     if (info.is_open()) {
         info << "Commit ID: " << commitId << "\n";
         info << "Message: "
-             << (commitMessage.empty() ? commitMessage : "(no message)")
+             << (!commitMessage.empty() ? commitMessage : "(no message)")
              << "\n";
         info << "Author: " << std::getenv("USER") << "\n";
         info << "Date: " << GeneratorUtils::getCurrentTimeUTC() << "\n";
@@ -111,24 +121,6 @@ void CommitCommand::commit(const std::string commitId,
 
     std::cout << "Commit pushed to commits directory with id: " << commitId
               << '\n';
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
     // logs: append commit to logs file
     Utils::ensureDir(fs::path(".minigit/logs/heads"));
     std::ofstream commits_refs(".minigit/logs/commits_refs", std::ios::app);
@@ -147,11 +139,7 @@ void CommitCommand::commit(const std::string commitId,
         return;
     }
     heads << previousCommitId << ' ' << commitId << " \n";
-
-    // headMoves after refs logging
-    headMove(branchName, commitId);
 }
-
 void CommitCommand::headMove(std::string branchName, std::string commitId) {
     Utils::ensureDir(".minigit/heads");
     fs::path headPath = ".minigit/heads/" + branchName;
@@ -165,6 +153,18 @@ void CommitCommand::pushToFilesTree(const std::string &branchName) {
 
     Utils::copyDirRecursive(".minigit/index",
                             ".minigit/branchesFilesTree/" + branchName);
+
+    for (const fs::directory_entry &entry : fs::recursive_directory_iterator(
+             ".minigit/branchesFilesTree/" + branchName)) {
+        fs::path relativePath = fs::relative(
+            entry.path(), ".minigit/branchesFilesTree/" + branchName);
+
+        if (fs::is_regular_file(entry.path())) {
+            if (!fs::exists(relativePath)) {
+                fs::remove(entry.path());
+            }
+        }
+    }
 }
 
 namespace {

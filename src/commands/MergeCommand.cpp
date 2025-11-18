@@ -1,4 +1,5 @@
 #include "../../include/commands/MergeCommand.h"
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -71,29 +72,116 @@ void MergeCommand::execute(const std::vector<std::string> &args) {
             .substr(0, commitIdLength);
 
     if (mergedBranchBaseCommitId == mergedIntoBranchLastCommitId) {
-        MergeCommand::fastForwardMerge(mergedBranchName);
+        MergeCommand::fastForwardMerge(currentBranchName, mergedBranchName);
+    } else {
+        std::cout << "You cannot do Fast-forward merge. \n";
+        std::string userAnswear = "e";
+        std::cout
+            << "Do you want to Choose witch files do you wanna keep form "
+               "both branches,\nor Merge over Current Branch Commits (y, "
+               "n) ?\ny - Choose witch files to keep.\nn - Merge Over.\ne "
+               "- exit.\n";
+        std::getline(std::cin, userAnswear);
+
+        if (userAnswear == "n") {
+            fastForwardMerge(currentBranchName, mergedBranchName);
+        } else if (userAnswear == "y") {
+            /*
+            steps to do this:
+                move the whole "branchesFilesTree" from the mereged branch to
+            the index, check the "branchesFilesTree" form the mergedIntoBranch
+            if there are same files with different sizes then ask the user witch
+            version he wants to keep. use tmp folder .
+            */
+            MergeCommand::indirectMerge(currentBranchName, mergedBranchName);
+        } else if (userAnswear == "e") {
+            std::cout << "Exited merge succesfully.\n";
+        } else {
+            std::cout << "Invalid input.\n";
+        }
     }
 }
 
-void MergeCommand::fastForwardMerge(const std::string &mergedBranchName) {
+void MergeCommand::fastForwardMerge(const std::string &mergedIntoBranchName,
+                                    const std::string &mergedBranchName) {
+    std::string message;
+    do {
+        std::cout << "Merge message: ";
+        std::getline(std::cin, message);
+    } while (message.empty());
+
     fs::path indexDirPath = ".minigit/index";
     fs::path mergedBranchFilesTreePath =
         ".minigit/branchesFilesTree/" + mergedBranchName;
 
-    std::string mergedIntoBranchName = Utils::getLine(".minigit/currentBranch");
     std::string commitId = GeneratorUtils::generateCommitId();
 
     // clear index Directory
     Utils::removeDir(indexDirPath);
     Utils::ensureDir(indexDirPath);
 
-    // move the correct files to index
+    // commit for the <merged> branch
+    CommitCommand::commit(commitId, mergedBranchName, message);
     Utils::copyDirRecursive(mergedBranchFilesTreePath, indexDirPath);
+    // commit for the currentBranch aka <mergedInto> branch
+    Utils::copyDirRecursive(mergedBranchFilesTreePath, indexDirPath);
+    CommitCommand::commit(commitId, mergedIntoBranchName, message);
 
-    CommitCommand::commit(commitId, mergedBranchName,
-                          "Merged " + mergedBranchName + " into " +
-                              mergedIntoBranchName);
-    CommitCommand::headMove(mergedIntoBranchName, commitId);
+    Utils::copyDirRecursive(mergedBranchFilesTreePath, ".");
+}
+void MergeCommand ::indirectMerge(const std::string &mergedIntoBranchName,
+                                  const std::string &mergedBranchName) {
+    fs::path mgitTmp = ".minigit/tmp";
+    std::string commitId = GeneratorUtils::generateCommitId();
+
+    Utils::removeDir(mgitTmp);
+    Utils::ensureDir(mgitTmp);
+
+    Utils::copyDirRecursive(".minigit/branchesFilesTree/" + mergedBranchName,
+                            mgitTmp);
+    for (const fs::directory_entry &entry :
+         fs::recursive_directory_iterator(mgitTmp)) {
+        fs::path relativeFilePath = fs::relative(entry.path(), mgitTmp);
+
+        if (fs::is_regular_file(relativeFilePath) &&
+            !Utils::checkFilesEqual(relativeFilePath, entry.path())) {
+            std::string userAnswear = "a";
+            std::cout << "Conflict fount in file: "
+                      << mgitTmp.filename().string() << ".\n";
+            std::cout
+                << "Witch version do you wanna keep --default is a, (a, b)?\n";
+            std::cout << "a - " << mergedIntoBranchName << " version.\n"
+                      << "b - " << mergedBranchName << " version.\n"
+                      << "e - " << "exit.\n";
+            std::getline(std::cin, userAnswear);
+
+            if (userAnswear == "a") {
+                Utils::copyFileSafe(relativeFilePath, mgitTmp);
+                std::cout << relativeFilePath.filename().string() << " --> "
+                          << mergedIntoBranchName << ".\n";
+            } else if (userAnswear == "b") {
+                std::cout << relativeFilePath.filename().string() << " --> "
+                          << mergedBranchName << ".\n";
+            } else if (userAnswear == "e") {
+                return;
+            } else {
+                std::cout << "Invalid Choice.\n";
+                return;
+            }
+        }
+    }
+
+    std::string message;
+    do {
+        std::cout << "Merge message: ";
+        std::getline(std::cin, message);
+    } while (message.empty());
+
+    // commit the changes to both branches
+    Utils::copyDirRecursive(mgitTmp, ".minigit/index");
+    CommitCommand::commit(commitId, mergedBranchName, message);
+    Utils::copyDirRecursive(mgitTmp, ".minigit/index");
+    CommitCommand::commit(commitId, mergedIntoBranchName, message);
 }
 
 namespace {

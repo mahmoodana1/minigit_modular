@@ -1,6 +1,7 @@
 #include "../../include/commands/LogCommand.h"
 #include <algorithm>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -74,48 +75,85 @@ void LogCommand::printLogs(const std::vector<std::string> &parts,
     if (parts.empty())
         return;
 
-    std::vector<std::pair<std::string, std::string>> commits;
+    std::vector<std::tuple<std::string, std::string, std::string>> logs;
 
+    // load logs from
     if (printBranch) {
-        // input format: parent child parent child
-        for (int i = 0; i + 1 < parts.size(); i += 2) {
-            std::string child = parts[i + 1];
+        // parent child parent child
+        for (size_t i = 0; i + 1 < parts.size(); i += 2) {
+            std::string commitID = parts[i + 1];
 
-            if (!commits.empty() && commits.back().first == child)
-                continue;
+            // read commit message from file
+            std::string msgPath = ".minigit/commits/" + commitID + "/info";
+            std::string msg = LogCommand::extractMessage(msgPath);
 
-            commits.push_back({child, ""});
+            logs.push_back({commitID, "", msg});
         }
     } else {
-        // input format: parent child branch parent child branch
-        for (int i = 0; i + 2 < parts.size(); i += 3) {
-            std::string child = parts[i + 1];
-            std::string branch = parts[i + 2];
+        // parent child branch
+        for (size_t i = 0; i + 2 < parts.size(); i += 3) {
+            std::string commitID = parts[i + 1];
+            std::string branchName = parts[i + 2];
 
-            if (!commits.empty() && commits.back().first == child)
-                continue;
+            std::string msgPath = ".minigit/commits/" + commitID + "/info";
+            std::string msg = LogCommand::extractMessage(msgPath);
 
-            commits.push_back({child, branch});
+            logs.push_back({commitID, branchName, msg});
         }
     }
 
-    std::reverse(commits.begin(), commits.end());
-    for (auto &entry : commits) {
-        const std::string &id = entry.first;
-        const std::string &branch = entry.second;
+    // newest first
+    std::reverse(logs.begin(), logs.end());
 
-        std::string shortID = id.size() >= 7 ? id.substr(id.size() - 7) : id;
+    for (size_t i = 0; i < logs.size(); i++) {
+        auto &[id, branch, msg] = logs[i];
+        std::string shortID = id.size() > 7 ? id.substr(0, 7) : id;
 
-        if (printBranch)
-            std::cout << "* " << shortID << "\n";
-        else
-            std::cout << "* " << shortID << " (" << branch << ")" << "\n";
+        std::cout << "* commit " << shortID;
 
-        std::cout << "|\n";
+        if (!branch.empty())
+            std::cout << " (" << branch << ")";
+
+        std::cout << "\n";
+
+        std::cout << "|  Message: " << msg << "\n";
+
+        if (i + 1 < logs.size())
+            std::cout << "|\n";
     }
 
     std::cout << "*\n";
-    return;
+}
+
+std::string LogCommand::extractMessage(const fs::path &infoPath) {
+    std::ifstream file(infoPath);
+    if (!file.is_open())
+        return "";
+
+    std::string line;
+    std::string message;
+    bool inMessage = false;
+
+    while (std::getline(file, line)) {
+
+        if (line.rfind("Message:", 0) == 0) {
+            inMessage = true;
+            if (line.size() > 8) {
+                message += line.substr(8) + "\n";
+            }
+            continue;
+        }
+
+        if (line.rfind("Author:", 0) == 0) {
+            break;
+        }
+
+        if (inMessage) {
+            message += line + "\n";
+        }
+    }
+
+    return message;
 }
 
 namespace {

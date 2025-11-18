@@ -15,4 +15,6 @@ class CommitCommand : public Command {
                 const std::string &commitMessage);
     void headMove(std::string branchName, std::string commitId);
     void pushToFilesTree(const std::string &branchName);
+    void logCommit(const std::string &commitMessage,
+                   const std::string &commitId, const std::string &branchName);
 };

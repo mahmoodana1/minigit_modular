@@ -8,5 +8,6 @@ class LogCommand : public Command {
     bool checkArgs(const std::vector<std::string> &args) override;
     void description() override;
     void printLogs(const std::vector<std::string> &parts, bool printBranch);
+    std::string extractMessage(const fs::path &infoPath);
     std::string getName() override;
 };

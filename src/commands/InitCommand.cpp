@@ -48,6 +48,7 @@ void InitCommand::execute(const std::vector<std::string> &args) {
     Utils::ensureDir(".minigit/logs");
     Utils::ensureDir(".minigit/heads");
     Utils::ensureDir(".minigit/branchesFilesTree/main");
+    Utils::ensureDir(".minigit/tmp");
 
     Utils::clearAndPushLine(".minigit/currentBranch", "main");
     Utils::clearAndPushLine(".minigit/heads/main", "none");

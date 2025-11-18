@@ -8,6 +8,9 @@ class MergeCommand : public CommitCommand {
     void execute(const std::vector<std::string> &args) override;
     bool checkArgs(const std::vector<std::string> &args) override;
     void description() override;
-    void fastForwardMerge(const std::string &mergedBranchName);
+    void fastForwardMerge(const std::string &mergedInto,
+                          const std::string &mergedBranchName);
     std::string getName() override;
+    void indirectMerge(const std::string &mergedIntoBranchName,
+                       const std::string &mergedBranchName);
 };
