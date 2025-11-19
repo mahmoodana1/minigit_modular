@@ -58,10 +58,6 @@ void BranchCommand::branchCommandsExecute(
 
         std::string newBranchName = args[2];
         std::string branchesFilesTreePath = ".minigit/branchesFilesTree/";
-        // copy branchesFilesTree
-        Utils::ensureDir(branchesFilesTreePath + newBranchName);
-        Utils::copyDirRecursive(branchesFilesTreePath + currentBranchName,
-                                branchesFilesTreePath + newBranchName);
 
         if (Utils::fileNameExists(fs::path(".minigit/heads"), newBranchName)) {
             std::cout << "Branch with name '" << newBranchName
@@ -69,12 +65,18 @@ void BranchCommand::branchCommandsExecute(
             return;
         }
 
-        std::string baseCommitId =
-            Utils::getLine(".minigit/heads/" + currentBranchName);
+        // copy branchesFilesTree
+        Utils::ensureDir(branchesFilesTreePath + newBranchName);
+        Utils::copyDirRecursive(branchesFilesTreePath + currentBranchName,
+                                branchesFilesTreePath + newBranchName);
 
-        // create new branch file pointing to same commit as current branch
-        Utils::clearAndPushLine(fs::path(".minigit/heads/" + newBranchName),
-                                baseCommitId);
+        fs::copy_file(".minigit/heads/" + currentBranchName,
+                      ".minigit/heads/" + newBranchName,
+                      fs::copy_options::overwrite_existing);
+        fs::copy_file(".minigit/logs/heads/" + currentBranchName,
+                      ".minigit/logs/heads/" + newBranchName,
+                      fs::copy_options::overwrite_existing);
+
         std::cout << "Branch '" << newBranchName << "' created successfully.\n";
         return;
     }
