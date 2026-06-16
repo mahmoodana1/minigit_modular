@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 
-std::string StatusCommand::getName() { return "add"; }
+std::string StatusCommand::getName() { return "status"; }
 
 bool StatusCommand::checkArgs(const std::vector<std::string> &args) {
     return (args.size() == 1);

@@ -1,6 +1,5 @@
 #include "../../include/commands/MergeCommand.h"
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <string>
 
@@ -64,67 +63,75 @@ void MergeCommand::execute(const std::vector<std::string> &args) {
     }
 
     // head of current branch aka the <merged into> branch
-    std::string mergedIntoBranchLastCommitId =
+    std::string mergedIntoBranchHead =
         Utils::getLine(".minigit/heads/" + currentBranchName);
     // base of <merged> branch
-    std::string mergedBranchBaseCommitId =
-        Utils::getLine(".minigit/logs/heads/" + mergedBranchName)
-            .substr(0, commitIdLength);
+    std::string mergedBranchHead =
+        Utils::getLine(".minigit/heads/" + mergedBranchName);
 
-    bool branchesAreEqual = true;
-    for (const fs::directory_entry &entry : fs::recursive_directory_iterator(
-             ".minigit/branchesFilesTree/" + mergedBranchName)) {
-        fs::path relativePath = fs::relative(
-            entry.path(), ".minigit/branchesFilesTree/" + mergedBranchName);
-        fs::path mergedIntoFilesTreePath =
-            ".minigit/branchesFilesTree/" + currentBranchName;
+    if (mergedIntoBranchHead != mergedBranchHead) {
+        bool canFastForward = true;
+        for (const fs::directory_entry &entry :
+             fs::recursive_directory_iterator(".minigit/branchesFilesTree/" +
+                                              mergedBranchName)) {
+            fs::path relativePath = fs::relative(
+                entry.path(), ".minigit/branchesFilesTree/" + mergedBranchName);
+            fs::path mergedIntoFilesTreePath =
+                ".minigit/branchesFilesTree/" + currentBranchName;
 
-        if (fs::is_regular_file(entry.path())) {
-            if (fs::is_regular_file(mergedIntoFilesTreePath / relativePath)) {
-                if (Utils::checkFileBigger(
-                        mergedIntoFilesTreePath / relativePath, entry.path())) {
-                    branchesAreEqual = false;
-                    break;
+            if (fs::is_regular_file(entry.path())) {
+                if (fs::is_regular_file(mergedIntoFilesTreePath /
+                                        relativePath)) {
+                    if (Utils::checkFileBigger(mergedIntoFilesTreePath /
+                                                   relativePath,
+                                               entry.path())) {
+                        canFastForward = false;
+                        break;
+                    }
                 }
             }
         }
-    }
 
-    if (branchesAreEqual) {
-        MergeCommand::fastForwardMerge(currentBranchName, mergedBranchName);
-    } else {
-        std::cout << "You cannot do Fast-forward merge. \n";
-        std::string userAnswear = "e";
-        std::cout
-            << "Do you want to Choose witch files do you wanna keep form "
-               "both branches,\nor Merge over Current Branch Commits (y, "
-               "n) ?\ny - Choose witch files to keep.\nn - Merge Over.\ne "
-               "- exit.\n";
-        std::getline(std::cin, userAnswear);
-
-        if (userAnswear == "n") {
-            fastForwardMerge(currentBranchName, mergedBranchName);
-        } else if (userAnswear == "y") {
-            /*
-            steps to do this:
-                move the whole "branchesFilesTree" from the mereged branch to
-            the index, check the "branchesFilesTree" form the mergedIntoBranch
-            if there are same files with different sizes then ask the user witch
-            version he wants to keep. use tmp folder .
-            */
-            MergeCommand::indirectMerge(currentBranchName, mergedBranchName);
-        } else if (userAnswear == "e") {
-            std::cout << "Exited merge succesfully.\n";
+        if (canFastForward) {
+            MergeCommand::fastForwardMerge(currentBranchName, mergedBranchName);
         } else {
-            std::cout << "Invalid input.\n";
+            std::cout << "You cannot do Fast-forward merge. \n";
+            std::string userAnswear = "e";
+            std::cout
+                << "Do you want to Choose witch files do you wanna keep form "
+                   "both branches,\nor Merge over Current Branch Commits (y, "
+                   "n) ?\ny - Choose witch files to keep.\nn - Merge Over.\ne "
+                   "- exit.\n";
+            std::getline(std::cin, userAnswear);
+
+            if (userAnswear == "n") {
+                fastForwardMerge(currentBranchName, mergedBranchName);
+            } else if (userAnswear == "y") {
+                /*
+                steps to do this:
+                    move the whole "branchesFilesTree" from the mereged branch
+                to the index, check the "branchesFilesTree" form the
+                mergedIntoBranch if there are same files with different sizes
+                then ask the user witch version he wants to keep. use tmp folder
+                .
+                */
+                MergeCommand::indirectMerge(currentBranchName,
+                                            mergedBranchName);
+            } else if (userAnswear == "e") {
+                std::cout << "Exited merge succesfully.\n";
+            } else {
+                std::cout << "Invalid input.\n";
+            }
         }
+    } else {
+        std::cout << "Branches are in sync.\n";
     }
+    return;
 }
 
 void MergeCommand::fastForwardMerge(const std::string &mergedIntoBranchName,
                                     const std::string &mergedBranchName) {
 
-    fs::path indexDirPath = ".minigit/index";
     fs::path mergedBranchFilesTreePath =
         ".minigit/branchesFilesTree/" + mergedBranchName;
 
@@ -132,24 +139,20 @@ void MergeCommand::fastForwardMerge(const std::string &mergedIntoBranchName,
         ".minigit/logs/heads/" + mergedIntoBranchName;
     fs::path mergedBranchHeadLogs = ".minigit/logs/heads/" + mergedBranchName;
 
-    std::ifstream in(mergedBranchHeadLogs);
-    std::ofstream out(mergedIntoBranchHeadLogs);
+    fs::copy_file(".minigit/heads/" + mergedBranchName,
+                  ".minigit/heads/" + mergedIntoBranchName,
+                  fs::copy_options::overwrite_existing);
+    fs::copy_file(".minigit/logs/heads/" + mergedBranchName,
+                  ".minigit/logs/heads/" + mergedIntoBranchName,
+                  fs::copy_options::overwrite_existing);
 
-    if (!in.is_open() || !out.is_open()) {
-        std::cout << "Failed Merge.\n";
-        return;
-    }
-
-    std::string line;
-    while (std::getline(in, line)) {
-        out << line << "\n";
-    }
-
-    // clear index Directory
-    Utils::removeDir(indexDirPath);
-    Utils::ensureDir(indexDirPath);
-
+    // sync branchesFilesTree
     Utils::copyDirRecursive(mergedBranchFilesTreePath, ".");
+    Utils::copyDirRecursive(".", ".minigit/branchesFilesTree/" +
+                                     mergedIntoBranchName);
+    Utils::copyDirRecursive(".", mergedBranchFilesTreePath);
+
+    std::cout << "Fast-forward merged into " << mergedIntoBranchName << ".\n";
 }
 
 void MergeCommand ::indirectMerge(const std::string &mergedIntoBranchName,
