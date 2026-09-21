@@ -8,7 +8,15 @@ build:
 	mkdir -p build
 	$(CXX) $(FLAGS) $(SRC) $(LIBS) -o $(BIN)
 
-test: test-init test-add test-commit test-branch
+test: 
+	-$(MAKE) test-init
+
+	-$(MAKE) test-add
+
+	-$(MAKE) test-commit
+
+	-$(MAKE) test-branch
+
 
 test-init:
 	bats -p tests/init.bats
