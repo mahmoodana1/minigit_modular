@@ -9,13 +9,10 @@ build:
 	$(CXX) $(FLAGS) $(SRC) $(LIBS) -o $(BIN)
 
 test: 
-	-$(MAKE) test-init
-
-	-$(MAKE) test-add
-
-	-$(MAKE) test-commit
-
-	-$(MAKE) test-branch
+	-$(MAKE) test-init --no-print-directory test-init || true
+	-$(MAKE) test-add --no-print-directory test-init || true
+	-$(MAKE) test-commit --no-print-directory test-init || true
+	-$(MAKE) test-branch --no-print-directory test-init || true
 
 
 test-init:
