@@ -8,11 +8,17 @@ build:
 	mkdir -p build
 	$(CXX) $(FLAGS) $(SRC) $(LIBS) -o $(BIN)
 
-test: 
-	-$(MAKE) test-init --no-print-directory test-init || true
-	-$(MAKE) test-add --no-print-directory test-init || true
-	-$(MAKE) test-commit --no-print-directory test-init || true
-	-$(MAKE) test-branch --no-print-directory test-init || true
+test:
+	@rm -f /tmp/minigit-test.log; \
+	for t in init add commit branch; do \
+		$(MAKE) --no-print-directory test-$$t | tee -a /tmp/minigit-test.log; \
+	done; \
+	echo ""; \
+	if grep -q "✗" /tmp/minigit-test.log; then \
+		grep "✗" /tmp/minigit-test.log | awk '{gsub(/\033\[[0-9;]*[mK]/,""); sub(/.*✗ /,""); printf "[%d] failure in \"%s\"\n", NR, $$0}'; \
+	else \
+		echo "ALL PASSED"; \
+	fi
 
 
 test-init:

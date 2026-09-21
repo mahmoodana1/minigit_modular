@@ -82,6 +82,24 @@ setup() {
   [[ "$output" == *"Missing branch name"* ]]
 }
 
+@test "branch new: name matching current branch prints already exists" {
+  run "$MINIGIT" branch new main
+  [[ "$output" == *"already exists"* ]]
+}
+
+@test "branch new: name with slash does not crash" {
+  run "$MINIGIT" branch new feature/login
+  [ "$status" -lt 128 ]
+}
+
+@test "branch new: works before any commit" {
+  rm -rf .minigit
+  "$MINIGIT" init >/dev/null
+  run "$MINIGIT" branch new dev
+  [ "$status" -lt 128 ]
+  [ -f ".minigit/heads/dev" ]
+}
+
 # branch delete
 @test "branch delete: removes the head file" {
   "$MINIGIT" branch new dev >/dev/null
@@ -140,6 +158,13 @@ setup() {
 @test "branch delete: without name prints missing branch name" {
   run "$MINIGIT" branch delete
   [[ "$output" == *"Missing branch name"* ]]
+}
+
+@test "branch delete: deleted branch cannot be switched to" {
+  "$MINIGIT" branch new dev >/dev/null
+  "$MINIGIT" branch delete dev >/dev/null
+  run "$MINIGIT" branch switch dev
+  [[ "$output" == *"not found"* ]]
 }
 
 # branch list
@@ -217,6 +242,39 @@ setup() {
   [ "$(cat .minigit/currentBranch)" = "dev" ]
   echo y | "$MINIGIT" branch switch main >/dev/null
   [ "$(cat .minigit/currentBranch)" = "main" ]
+}
+
+@test "branch switch: accepts uppercase Y" {
+  "$MINIGIT" branch new dev >/dev/null
+  echo Y | "$MINIGIT" branch switch dev >/dev/null
+  [ "$(cat .minigit/currentBranch)" = "dev" ]
+}
+
+@test "branch switch: retries until a valid answer is given" {
+  "$MINIGIT" branch new dev >/dev/null
+  printf "x\ny\n" | "$MINIGIT" branch switch dev >/dev/null
+  [ "$(cat .minigit/currentBranch)" = "dev" ]
+}
+
+@test "branch switch: to the branch you are already on keeps files" {
+  echo y | "$MINIGIT" branch switch main >/dev/null
+  [ "$(cat .minigit/currentBranch)" = "main" ]
+  [ -f base.txt ]
+}
+
+@test "branch switch: keeps staged files in the index" {
+  "$MINIGIT" branch new dev >/dev/null
+  echo "staged" >s.txt
+  "$MINIGIT" add s.txt >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  [ -f ".minigit/index/s.txt" ]
+}
+
+@test "branch switch: keeps untracked files" {
+  "$MINIGIT" branch new dev >/dev/null
+  echo "untracked" >u.txt
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  [ -f "u.txt" ]
 }
 
 # branches with commits
@@ -303,6 +361,85 @@ setup() {
 
   "$MINIGIT" branch new dev >/dev/null
   [ "$(cat .minigit/heads/dev)" = "$m2" ]
+}
+
+# head movement
+@test "branch: head moves on each commit on a branch" {
+  "$MINIGIT" branch new dev >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+
+  echo "1" >d1.txt
+  "$MINIGIT" add d1.txt >/dev/null
+  id1=$("$MINIGIT" commit -m "d1" | awk '{print $NF}')
+  [ "$(cat .minigit/heads/dev)" = "$id1" ]
+
+  echo "2" >d2.txt
+  "$MINIGIT" add d2.txt >/dev/null
+  id2=$("$MINIGIT" commit -m "d2" | awk '{print $NF}')
+  [ "$(cat .minigit/heads/dev)" = "$id2" ]
+
+  grep "Previous Commit ID: $id1" ".minigit/commits/$id2/refs"
+}
+
+@test "branch: branch made mid-history keeps the older head" {
+  echo "2" >b.txt
+  "$MINIGIT" add b.txt >/dev/null
+  m2=$("$MINIGIT" commit -m "m2" | awk '{print $NF}')
+
+  "$MINIGIT" branch new dev >/dev/null
+
+  echo "3" >c.txt
+  "$MINIGIT" add c.txt >/dev/null
+  m3=$("$MINIGIT" commit -m "m3" | awk '{print $NF}')
+
+  [ "$(cat .minigit/heads/dev)" = "$m2" ]
+  [ "$(cat .minigit/heads/main)" = "$m3" ]
+}
+
+@test "branch: deleting files then committing moves head" {
+  "$MINIGIT" branch new dev >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+
+  echo "x" >x.txt
+  "$MINIGIT" add . >/dev/null
+  id1=$("$MINIGIT" commit -m "d1" | awk '{print $NF}')
+
+  rm x.txt
+  "$MINIGIT" add . >/dev/null
+  id2=$("$MINIGIT" commit -m "d2" | awk '{print $NF}')
+
+  [ "$(cat .minigit/heads/dev)" = "$id2" ]
+  [ -f ".minigit/commits/$id1/snapshot/x.txt" ]
+  [ ! -e ".minigit/commits/$id2/snapshot/x.txt" ]
+}
+
+@test "branch: deletions on one branch do not affect the other" {
+  "$MINIGIT" branch new dev >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+
+  echo "keep" >keep.txt
+  rm base.txt
+  "$MINIGIT" add . >/dev/null
+  "$MINIGIT" commit -m "drop base" >/dev/null
+
+  echo y | "$MINIGIT" branch switch main >/dev/null
+  [ -f base.txt ]
+}
+
+@test "branch: logs record each commit on the branch" {
+  "$MINIGIT" branch new dev >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+
+  echo "1" >d1.txt
+  "$MINIGIT" add d1.txt >/dev/null
+  id1=$("$MINIGIT" commit -m "d1" | awk '{print $NF}')
+
+  echo "2" >d2.txt
+  "$MINIGIT" add d2.txt >/dev/null
+  id2=$("$MINIGIT" commit -m "d2" | awk '{print $NF}')
+
+  grep "$id1" .minigit/logs/heads/dev
+  grep "$id2" .minigit/logs/heads/dev
 }
 
 # error handling
