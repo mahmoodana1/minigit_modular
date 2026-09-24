@@ -10,7 +10,7 @@ build:
 
 test:
 	@rm -f /tmp/minigit-test.log; \
-	for t in init add commit branch log; do \
+	for t in init add commit branch log status; do \
 		$(MAKE) --no-print-directory test-$$t | tee -a /tmp/minigit-test.log; \
 	done; \
 	echo ""; \
@@ -35,6 +35,9 @@ test-branch:
 
 test-log:
 	bats -p tests/log.bats
+
+test-status:
+	bats -p tests/status.bats
 
 clean:
 	rm -rf build
