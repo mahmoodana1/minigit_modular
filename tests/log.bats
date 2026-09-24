@@ -145,6 +145,152 @@ setup() {
   [[ "$output" == *"Author: fake"* ]]
 }
 
+# log with branches
+@test "log: new branch inherits parent history" {
+  echo "a" >a.txt
+  "$MINIGIT" add a.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  "$MINIGIT" branch new dev >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  run "$MINIGIT" log
+  [[ "$output" == *"m1"* ]]
+}
+
+@test "log: main does not show dev commits" {
+  echo "a" >a.txt
+  "$MINIGIT" add a.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  "$MINIGIT" branch new dev >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  echo "d" >d.txt
+  "$MINIGIT" add d.txt >/dev/null
+  "$MINIGIT" commit -m "d1" >/dev/null
+  echo y | "$MINIGIT" branch switch main >/dev/null
+  run "$MINIGIT" log
+  [[ "$output" == *"m1"* ]]
+  [[ "$output" != *"d1"* ]]
+}
+
+@test "log: dev does not show later main commits" {
+  echo "a" >a.txt
+  "$MINIGIT" add a.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  "$MINIGIT" branch new dev >/dev/null
+  echo "b" >b.txt
+  "$MINIGIT" add b.txt >/dev/null
+  "$MINIGIT" commit -m "m2" >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  run "$MINIGIT" log
+  [[ "$output" == *"m1"* ]]
+  [[ "$output" != *"m2"* ]]
+}
+
+@test "log: follows the current branch after switching" {
+  echo "a" >a.txt
+  "$MINIGIT" add a.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  "$MINIGIT" branch new dev >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  echo "d" >d.txt
+  "$MINIGIT" add d.txt >/dev/null
+  "$MINIGIT" commit -m "d1" >/dev/null
+  run "$MINIGIT" log
+  [[ "$output" == *"d1"* ]]
+  echo y | "$MINIGIT" branch switch main >/dev/null
+  run "$MINIGIT" log
+  [[ "$output" != *"d1"* ]]
+}
+
+@test "log: branch history newest first" {
+  echo "a" >a.txt
+  "$MINIGIT" add a.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  "$MINIGIT" branch new dev >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  echo "d" >d.txt
+  "$MINIGIT" add d.txt >/dev/null
+  "$MINIGIT" commit -m "d1" >/dev/null
+  run "$MINIGIT" log
+  [[ "$output" == *"d1"*"m1"* ]]
+}
+
+@test "log all: shows commits from every branch" {
+  echo "a" >a.txt
+  "$MINIGIT" add a.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  "$MINIGIT" branch new dev >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  echo "d" >d.txt
+  "$MINIGIT" add d.txt >/dev/null
+  "$MINIGIT" commit -m "d1" >/dev/null
+  run "$MINIGIT" log all
+  [[ "$output" == *"m1"* ]]
+  [[ "$output" == *"d1"* ]]
+}
+
+@test "log all: tags each commit with its branch" {
+  echo "a" >a.txt
+  "$MINIGIT" add a.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  "$MINIGIT" branch new dev >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  echo "d" >d.txt
+  "$MINIGIT" add d.txt >/dev/null
+  "$MINIGIT" commit -m "d1" >/dev/null
+  run "$MINIGIT" log all
+  [[ "$output" == *"(dev)"*"d1"* ]]
+  [[ "$output" == *"(main)"*"m1"* ]]
+}
+
+@test "log all: newest first across branches" {
+  echo "a" >a.txt
+  "$MINIGIT" add a.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  "$MINIGIT" branch new dev >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  echo "d" >d.txt
+  "$MINIGIT" add d.txt >/dev/null
+  "$MINIGIT" commit -m "d1" >/dev/null
+  echo y | "$MINIGIT" branch switch main >/dev/null
+  echo "b" >b.txt
+  "$MINIGIT" add b.txt >/dev/null
+  "$MINIGIT" commit -m "m2" >/dev/null
+  run "$MINIGIT" log all
+  [[ "$output" == *"m2"*"d1"*"m1"* ]]
+}
+
+@test "log all: deleted branch commits still show" {
+  echo "a" >a.txt
+  "$MINIGIT" add a.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  "$MINIGIT" branch new dev >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  echo "d" >d.txt
+  "$MINIGIT" add d.txt >/dev/null
+  "$MINIGIT" commit -m "d1" >/dev/null
+  echo y | "$MINIGIT" branch switch main >/dev/null
+  "$MINIGIT" branch delete dev >/dev/null
+  run "$MINIGIT" log all
+  [[ "$output" == *"d1"* ]]
+}
+
+@test "log: recreated branch does not show old branch commits" {
+  echo "a" >a.txt
+  "$MINIGIT" add a.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  "$MINIGIT" branch new dev >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  echo "d" >d.txt
+  "$MINIGIT" add d.txt >/dev/null
+  "$MINIGIT" commit -m "old dev" >/dev/null
+  echo y | "$MINIGIT" branch switch main >/dev/null
+  "$MINIGIT" branch delete dev >/dev/null
+  "$MINIGIT" branch new dev >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  run "$MINIGIT" log
+  [[ "$output" != *"old dev"* ]]
+}
+
 # error handling
 @test "log: unknown option prints usage" {
   run "$MINIGIT" log foo
