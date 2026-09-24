@@ -33,6 +33,9 @@ test-commit:
 test-branch:
 	bats -p tests/branch.bats
 
+test-log:
+	bats -p tests/log.bats
+
 clean:
 	rm -rf build
 
