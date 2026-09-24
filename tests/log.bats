@@ -291,6 +291,164 @@ setup() {
   [[ "$output" != *"old dev"* ]]
 }
 
+# head movement in log
+@test "log: entry count matches commits on the branch" {
+  for i in 1 2 3; do
+    echo "$i" >"m$i.txt"
+    "$MINIGIT" add "m$i.txt" >/dev/null
+    "$MINIGIT" commit -m "m$i" >/dev/null
+  done
+  run "$MINIGIT" log
+  [ "$(echo "$output" | grep -c "\* commit")" -eq 3 ]
+}
+
+@test "log: alternating commits stay on their own branch" {
+  echo "1" >m1.txt
+  "$MINIGIT" add m1.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  "$MINIGIT" branch new dev >/dev/null
+
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  echo "1" >d1.txt
+  "$MINIGIT" add d1.txt >/dev/null
+  "$MINIGIT" commit -m "d1" >/dev/null
+
+  echo y | "$MINIGIT" branch switch main >/dev/null
+  echo "2" >m2.txt
+  "$MINIGIT" add m2.txt >/dev/null
+  "$MINIGIT" commit -m "m2" >/dev/null
+
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  echo "2" >d2.txt
+  "$MINIGIT" add d2.txt >/dev/null
+  "$MINIGIT" commit -m "d2" >/dev/null
+
+  run "$MINIGIT" log
+  [[ "$output" == *"d2"*"d1"*"m1"* ]]
+  [[ "$output" != *"m2"* ]]
+
+  echo y | "$MINIGIT" branch switch main >/dev/null
+  run "$MINIGIT" log
+  [[ "$output" == *"m2"*"m1"* ]]
+  [[ "$output" != *"d1"* ]]
+  [[ "$output" != *"d2"* ]]
+}
+
+@test "log: branch made from a branch shows the full chain" {
+  echo "1" >m1.txt
+  "$MINIGIT" add m1.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  "$MINIGIT" branch new dev >/dev/null
+
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  echo "1" >d1.txt
+  "$MINIGIT" add d1.txt >/dev/null
+  "$MINIGIT" commit -m "d1" >/dev/null
+  "$MINIGIT" branch new feature >/dev/null
+  echo "2" >d2.txt
+  "$MINIGIT" add d2.txt >/dev/null
+  "$MINIGIT" commit -m "d2" >/dev/null
+
+  echo y | "$MINIGIT" branch switch feature >/dev/null
+  run "$MINIGIT" log
+  [[ "$output" == *"d1"*"m1"* ]]
+  [[ "$output" != *"d2"* ]]
+}
+
+@test "log: logs file has one line per commit on the branch" {
+  for i in 1 2 3; do
+    echo "$i" >"m$i.txt"
+    "$MINIGIT" add "m$i.txt" >/dev/null
+    "$MINIGIT" commit -m "m$i" >/dev/null
+  done
+  [ "$(wc -l <.minigit/logs/heads/main)" -eq 3 ]
+}
+
+@test "log: different commits show different ids" {
+  echo "1" >a.txt
+  "$MINIGIT" add a.txt >/dev/null
+  "$MINIGIT" commit -m "first" >/dev/null
+  echo "2" >b.txt
+  "$MINIGIT" add b.txt >/dev/null
+  "$MINIGIT" commit -m "second" >/dev/null
+  run "$MINIGIT" log
+  ids=$(echo "$output" | grep "\* commit" | sort -u | wc -l)
+  [ "$ids" -eq 2 ]
+}
+
+# log after branch failures
+@test "log: commit after cancelled switch stays on main" {
+  echo "1" >m1.txt
+  "$MINIGIT" add m1.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  "$MINIGIT" branch new dev >/dev/null
+  echo n | "$MINIGIT" branch switch dev >/dev/null
+
+  echo "2" >m2.txt
+  "$MINIGIT" add m2.txt >/dev/null
+  "$MINIGIT" commit -m "after cancel" >/dev/null
+  run "$MINIGIT" log all
+  [[ "$output" == *"(main)"*"after cancel"* ]]
+}
+
+@test "log: dev log unchanged by commit after cancelled switch" {
+  echo "1" >m1.txt
+  "$MINIGIT" add m1.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  "$MINIGIT" branch new dev >/dev/null
+  echo n | "$MINIGIT" branch switch dev >/dev/null
+
+  echo "2" >m2.txt
+  "$MINIGIT" add m2.txt >/dev/null
+  "$MINIGIT" commit -m "after cancel" >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  run "$MINIGIT" log
+  [[ "$output" != *"after cancel"* ]]
+}
+
+@test "log: staged file survives a switch round trip and gets logged" {
+  echo "1" >m1.txt
+  "$MINIGIT" add m1.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  "$MINIGIT" branch new dev >/dev/null
+
+  echo "s" >s.txt
+  "$MINIGIT" add s.txt >/dev/null
+  echo y | "$MINIGIT" branch switch dev >/dev/null
+  echo y | "$MINIGIT" branch switch main >/dev/null
+  "$MINIGIT" commit -m "staged work" >/dev/null
+  run "$MINIGIT" log
+  [[ "$output" == *"staged work"* ]]
+}
+
+@test "log: still works after failed branch with slash" {
+  echo "1" >m1.txt
+  "$MINIGIT" add m1.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  "$MINIGIT" branch new feature/login >/dev/null 2>&1 || true
+  run "$MINIGIT" log
+  [[ "$output" == *"m1"* ]]
+}
+
+@test "log: still works after failed branch new before any commit" {
+  "$MINIGIT" branch new dev >/dev/null 2>&1 || true
+  echo "1" >m1.txt
+  "$MINIGIT" add m1.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  run "$MINIGIT" log
+  [[ "$output" == *"m1"* ]]
+}
+
+@test "log: deleting another branch does not change current log" {
+  echo "1" >m1.txt
+  "$MINIGIT" add m1.txt >/dev/null
+  "$MINIGIT" commit -m "m1" >/dev/null
+  "$MINIGIT" branch new dev >/dev/null
+  before=$("$MINIGIT" log)
+  "$MINIGIT" branch delete dev >/dev/null
+  [ "$("$MINIGIT" log)" = "$before" ]
+}
+
 # error handling
 @test "log: unknown option prints usage" {
   run "$MINIGIT" log foo
