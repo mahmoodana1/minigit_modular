@@ -10,7 +10,7 @@ build:
 
 test:
 	@rm -f /tmp/minigit-test.log; \
-	for t in init add commit branch log status; do \
+	for t in init add commit branch log status merge; do \
 		$(MAKE) --no-print-directory test-$$t | tee -a /tmp/minigit-test.log; \
 	done; \
 	echo ""; \
@@ -38,6 +38,9 @@ test-log:
 
 test-status:
 	bats -p tests/status.bats
+
+test-merge:
+	bats -p tests/merge.bats
 
 clean:
 	rm -rf build
