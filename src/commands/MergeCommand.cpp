@@ -1,4 +1,5 @@
 #include "../../include/commands/MergeCommand.h"
+#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -70,27 +71,11 @@ void MergeCommand::execute(const std::vector<std::string> &args) {
         Utils::getLine(".minigit/heads/" + mergedBranchName);
 
     if (mergedIntoBranchHead != mergedBranchHead) {
-        bool canFastForward = true;
-        for (const fs::directory_entry &entry :
-             fs::recursive_directory_iterator(".minigit/branchesFilesTree/" +
-                                              mergedBranchName)) {
-            fs::path relativePath = fs::relative(
-                entry.path(), ".minigit/branchesFilesTree/" + mergedBranchName);
-            fs::path mergedIntoFilesTreePath =
-                ".minigit/branchesFilesTree/" + currentBranchName;
-
-            if (fs::is_regular_file(entry.path())) {
-                if (fs::is_regular_file(mergedIntoFilesTreePath /
-                                        relativePath)) {
-                    if (Utils::checkFileBigger(mergedIntoFilesTreePath /
-                                                   relativePath,
-                                               entry.path())) {
-                        canFastForward = false;
-                        break;
-                    }
-                }
-            }
-        }
+        // fast-forward only if the current head is in the merged branch history
+        std::vector<std::string> mergedLog =
+            Utils::readLines(".minigit/logs/heads/" + mergedBranchName);
+        bool canFastForward = std::find(mergedLog.begin(), mergedLog.end(),
+                                        mergedIntoBranchHead) != mergedLog.end();
 
         if (canFastForward) {
             MergeCommand::fastForwardMerge(currentBranchName, mergedBranchName);
@@ -148,9 +133,9 @@ void MergeCommand::fastForwardMerge(const std::string &mergedIntoBranchName,
 
     // sync branchesFilesTree
     Utils::copyDirRecursive(mergedBranchFilesTreePath, ".");
-    Utils::copyDirRecursive(".", ".minigit/branchesFilesTree/" +
-                                     mergedIntoBranchName);
-    Utils::copyDirRecursive(".", mergedBranchFilesTreePath);
+    Utils::copyDirRecursive(mergedBranchFilesTreePath,
+                            ".minigit/branchesFilesTree/" +
+                                mergedIntoBranchName);
 
     std::cout << "Fast-forward merged into " << mergedIntoBranchName << ".\n";
 }
