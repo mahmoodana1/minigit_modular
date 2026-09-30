@@ -70,12 +70,18 @@ void BranchCommand::branchCommandsExecute(
         Utils::copyDirRecursive(branchesFilesTreePath + currentBranchName,
                                 branchesFilesTreePath + newBranchName);
 
+        Utils::ensureDir(
+            fs::path(".minigit/heads/" + newBranchName).parent_path());
+        Utils::ensureDir(
+            fs::path(".minigit/logs/heads/" + newBranchName).parent_path());
         fs::copy_file(".minigit/heads/" + currentBranchName,
                       ".minigit/heads/" + newBranchName,
                       fs::copy_options::overwrite_existing);
-        fs::copy_file(".minigit/logs/heads/" + currentBranchName,
-                      ".minigit/logs/heads/" + newBranchName,
-                      fs::copy_options::overwrite_existing);
+        if (fs::exists(".minigit/logs/heads/" + currentBranchName)) {
+            fs::copy_file(".minigit/logs/heads/" + currentBranchName,
+                          ".minigit/logs/heads/" + newBranchName,
+                          fs::copy_options::overwrite_existing);
+        }
 
         std::cout << "Branch '" << newBranchName << "' created successfully.\n";
         return;
@@ -103,7 +109,7 @@ void BranchCommand::branchCommandsExecute(
         fs::path branchFilePath = ".minigit/heads/" + wannaDeleteBranch;
         if (fs::remove(branchFilePath)) {
             Utils::deleteDirRecursive(".minigit/branchesFilesTree/" +
-                                      currentBranchName);
+                                      wannaDeleteBranch);
             std::cout << "Branch '" << wannaDeleteBranch
                       << "' deleted successfully.\n";
         } else {
@@ -132,8 +138,9 @@ void BranchCommand::branchCommandsExecute(
         if (args.size() >= 3) {
             std::string switchedToBranch = args[2];
             if (Utils::fileNameExists(headsDir, switchedToBranch)) {
-                BranchCommand::switchCommand(currentBranchPath,
-                                             switchedToBranch);
+                if (!BranchCommand::switchCommand(currentBranchPath,
+                                                  switchedToBranch))
+                    return;
                 Utils::clearAndPushLine(currentBranchPath, switchedToBranch);
                 std::cout << "Active Branch: " << switchedToBranch << '\n';
                 return;
@@ -155,13 +162,13 @@ void BranchCommand::branchCommandsExecute(
     }
 }
 
-void BranchCommand::switchCommand(const fs::path &path,
+bool BranchCommand::switchCommand(const fs::path &path,
                                   std::string branchName) {
     std::string newHeadCommitId =
         Utils::getLine(".minigit/heads/" + branchName);
     if (newHeadCommitId.empty()) {
         std::cout << "No base for branch: " << branchName << ".\n";
-        return;
+        return true;
     }
 
     fs::path newBaseFilesPath =
@@ -178,14 +185,22 @@ void BranchCommand::switchCommand(const fs::path &path,
     } while (choice != 'y' && choice != 'n');
 
     if (choice == 'y') {
-        Utils::deleteDirRecursive(".");
-        Utils::deleteDirRecursive(".minigit/index");
+        fs::path currentTree =
+            ".minigit/branchesFilesTree/" + Utils::getLine(path);
+        for (const auto &entry :
+             fs::recursive_directory_iterator(currentTree)) {
+            if (entry.is_regular_file())
+                fs::remove(fs::relative(entry.path(), currentTree));
+        }
         Utils::copyDirRecursive(newBaseFilesPath, ".");
         std::cout << "Switching branch...\n";
-    } else {
-        std::cout << "Branch switch cancelled.\n";
+        return true;
     }
+
+    std::cout << "Branch switch cancelled.\n";
+    return false;
 }
+
 namespace {
 
 struct BranchCommandRegistrar {

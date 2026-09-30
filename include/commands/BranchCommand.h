@@ -7,6 +7,6 @@ class BranchCommand : public Command {
     bool checkArgs(const std::vector<std::string> &args) override;
     void description() override;
     std::string getName() override;
-    void switchCommand(const fs::path &path, std::string branchName);
+    bool switchCommand(const fs::path &path, std::string branchName);
     void branchCommandsExecute(const std::vector<std::string> &args);
 };
