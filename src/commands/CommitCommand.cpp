@@ -10,7 +10,7 @@
 std::string getCommitMessage(const std::vector<std::string> &args) {
     std::ostringstream messageStream;
     for (int i = 2; i < args.size(); i++) {
-        messageStream << args[i] << ' ';
+        messageStream << args[i];
     }
     return messageStream.str();
 }
