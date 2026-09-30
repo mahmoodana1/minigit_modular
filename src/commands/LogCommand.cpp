@@ -77,7 +77,7 @@ void LogCommand::printLogs(const std::vector<std::string> &parts,
 
     std::vector<std::tuple<std::string, std::string, std::string>> logs;
 
-    // load logs from
+    // load logs into a vector of tuples (commitID, branchName, message)
     if (printBranch) {
         // parent child parent child
         for (size_t i = 0; i + 1 < parts.size(); i += 2) {
@@ -107,7 +107,9 @@ void LogCommand::printLogs(const std::vector<std::string> &parts,
 
     for (size_t i = 0; i < logs.size(); i++) {
         auto &[id, branch, msg] = logs[i];
-        std::string shortID = id.size() > 7 ? id.substr(0, 7) : id;
+        size_t underscore = id.find_last_of('_');
+        std::string shortID =
+            underscore == std::string::npos ? id : id.substr(underscore + 1);
 
         std::cout << "* commit " << shortID;
 
@@ -131,25 +133,31 @@ std::string LogCommand::extractMessage(const fs::path &infoPath) {
         return "";
 
     std::string line;
+    std::vector<std::string> lines;
+    while (std::getline(file, line))
+        lines.push_back(line);
+
     std::string message;
     bool inMessage = false;
 
-    while (std::getline(file, line)) {
+    for (size_t i = 0; i < lines.size(); i++) {
+        const std::string &l = lines[i];
 
-        if (line.rfind("Message:", 0) == 0) {
+        if (!inMessage && l.rfind("Message:", 0) == 0) {
             inMessage = true;
-            if (line.size() > 8) {
-                message += line.substr(8) + "\n";
+            if (l.size() > 8) {
+                message += l.substr(8) + "\n";
             }
             continue;
         }
 
-        if (line.rfind("Author:", 0) == 0) {
+        if (l.rfind("Author:", 0) == 0 && i + 1 < lines.size() &&
+            lines[i + 1].rfind("Date:", 0) == 0) {
             break;
         }
 
         if (inMessage) {
-            message += line + "\n";
+            message += l + "\n";
         }
     }
 
