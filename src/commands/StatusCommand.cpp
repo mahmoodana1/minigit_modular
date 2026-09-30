@@ -243,13 +243,13 @@ void StatusCommand::compareFiles() {
         else if (inRoot && inIndex && !inCommit) {
             status = "new file staged";
         }
-        // deleted but not staged
+        // staged, then removed from the working tree
         else if (!inRoot && inIndex && inCommit) {
-            status = "deleted";
-        }
-        // staged for removal
-        else if (!inRoot && !inIndex && inCommit) {
             status = "staged for removal";
+        }
+        // deleted but not staged
+        else if (!inRoot && !inIndex && inCommit) {
+            status = "deleted";
         }
         // conflict
         else if (!inRoot && inIndex && !inCommit) {
