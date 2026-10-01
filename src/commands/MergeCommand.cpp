@@ -4,6 +4,22 @@
 #include <iostream>
 #include <string>
 
+// same file in both branch trees with different content
+static bool hasConflict(const std::string &intoBranch,
+                        const std::string &fromBranch) {
+    fs::path intoTree = ".minigit/branchesFilesTree/" + intoBranch;
+    fs::path fromTree = ".minigit/branchesFilesTree/" + fromBranch;
+    for (const auto &entry : fs::recursive_directory_iterator(fromTree)) {
+        if (!entry.is_regular_file())
+            continue;
+        fs::path mine = intoTree / fs::relative(entry.path(), fromTree);
+        if (fs::is_regular_file(mine) &&
+            !Utils::checkFilesEqual(mine, entry.path()))
+            return true;
+    }
+    return false;
+}
+
 std::string MergeCommand::getName() { return "merge"; };
 
 bool MergeCommand::checkArgs(const std::vector<std::string> &args) {
@@ -70,6 +86,14 @@ void MergeCommand::execute(const std::vector<std::string> &args) {
     std::string mergedBranchHead =
         Utils::getLine(".minigit/heads/" + mergedBranchName);
 
+    std::vector<std::string> intoLog =
+        Utils::readLines(".minigit/logs/heads/" + currentBranchName);
+    if (std::find(intoLog.begin(), intoLog.end(), mergedBranchHead) !=
+        intoLog.end()) {
+        std::cout << "Branches are in sync.\n";
+        return;
+    }
+
     if (mergedIntoBranchHead != mergedBranchHead) {
         // fast-forward only if the current head is in the merged branch history
         std::vector<std::string> mergedLog =
@@ -78,7 +102,22 @@ void MergeCommand::execute(const std::vector<std::string> &args) {
                                         mergedIntoBranchHead) != mergedLog.end();
 
         if (canFastForward) {
+            // files the merged branch deleted must go away on this branch too
+            fs::path intoTree = ".minigit/branchesFilesTree/" + currentBranchName;
+            fs::path fromTree = ".minigit/branchesFilesTree/" + mergedBranchName;
+            std::vector<fs::path> deleted;
+            for (const auto &entry : fs::recursive_directory_iterator(intoTree)) {
+                fs::path rel = fs::relative(entry.path(), intoTree);
+                if (entry.is_regular_file() && !fs::exists(fromTree / rel))
+                    deleted.push_back(rel);
+            }
+            for (const fs::path &rel : deleted) {
+                fs::remove(intoTree / rel);
+                fs::remove(rel);
+            }
             MergeCommand::fastForwardMerge(currentBranchName, mergedBranchName);
+        } else if (!hasConflict(currentBranchName, mergedBranchName)) {
+            MergeCommand::indirectMerge(currentBranchName, mergedBranchName);
         } else {
             std::cout << "You cannot do Fast-forward merge. \n";
             std::string userAnswear = "e";
@@ -148,14 +187,43 @@ void MergeCommand ::indirectMerge(const std::string &mergedIntoBranchName,
     Utils::removeDir(mgitTmp);
     Utils::ensureDir(mgitTmp);
 
-    Utils::copyDirRecursive(".minigit/branchesFilesTree/" + mergedBranchName,
-                            mgitTmp);
+    // start from the current branch, then bring in the merged branch's files
+    fs::path intoTree = ".minigit/branchesFilesTree/" + mergedIntoBranchName;
+    fs::path fromTree = ".minigit/branchesFilesTree/" + mergedBranchName;
+
+    // newest commit both branches share, to tell "deleted here" from "added there"
+    std::vector<std::string> intoLog =
+        Utils::readLines(".minigit/logs/heads/" + mergedIntoBranchName);
+    std::vector<std::string> fromLog =
+        Utils::readLines(".minigit/logs/heads/" + mergedBranchName);
+    fs::path baseSnapshot;
+    for (const std::string &id : intoLog) {
+        if (id != "none" &&
+            std::find(fromLog.begin(), fromLog.end(), id) != fromLog.end())
+            baseSnapshot = ".minigit/commits/" + id + "/snapshot";
+    }
+
+    Utils::copyDirRecursive(intoTree, mgitTmp);
+    for (const auto &entry : fs::recursive_directory_iterator(fromTree)) {
+        if (!entry.is_regular_file())
+            continue;
+        fs::path rel = fs::relative(entry.path(), fromTree);
+        if (!baseSnapshot.empty() && !fs::exists(intoTree / rel) &&
+            fs::exists(baseSnapshot / rel))
+            continue;
+        fs::create_directories((mgitTmp / rel).parent_path());
+        fs::copy_file(entry.path(), mgitTmp / rel,
+                      fs::copy_options::overwrite_existing);
+    }
+
+    bool conflicted = false;
     for (const fs::directory_entry &entry :
          fs::recursive_directory_iterator(mgitTmp)) {
         fs::path relativeFilePath = fs::relative(entry.path(), mgitTmp);
 
         if (fs::is_regular_file(relativeFilePath) &&
             !Utils::checkFilesEqual(relativeFilePath, entry.path())) {
+            conflicted = true;
             std::string userAnswear = "a";
             std::cout << "Conflict fount in file: "
                       << relativeFilePath.string() << ".\n";
@@ -182,11 +250,14 @@ void MergeCommand ::indirectMerge(const std::string &mergedIntoBranchName,
         }
     }
 
-    std::string message;
-    do {
-        std::cout << "Merge message: ";
-        std::getline(std::cin, message);
-    } while (message.empty());
+    std::string message = "Merge branch '" + mergedBranchName + "'";
+    if (conflicted) {
+        message.clear();
+        do {
+            std::cout << "Merge message: ";
+            std::getline(std::cin, message);
+        } while (message.empty());
+    }
 
     // commit the merge only to the current branch and update the working tree
     Utils::copyDirRecursive(mgitTmp, ".");
