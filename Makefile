@@ -22,25 +22,25 @@ test:
 
 
 test-init:
-	bats -p tests/init.bats
+	bats -p tests/init.bats </dev/null
 
 test-add:
-	bats -p tests/add.bats
+	bats -p tests/add.bats </dev/null
 
 test-commit:
-	bats -p tests/commit.bats
+	bats -p tests/commit.bats </dev/null
 
 test-branch:
-	bats -p tests/branch.bats
+	bats -p tests/branch.bats </dev/null
 
 test-log:
-	bats -p tests/log.bats
+	bats -p tests/log.bats </dev/null
 
 test-status:
-	bats -p tests/status.bats
+	bats -p tests/status.bats </dev/null
 
 test-merge:
-	bats -p tests/merge.bats
+	bats -p tests/merge.bats </dev/null
 
 clean:
 	rm -rf build
