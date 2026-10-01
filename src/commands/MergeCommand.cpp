@@ -158,7 +158,7 @@ void MergeCommand ::indirectMerge(const std::string &mergedIntoBranchName,
             !Utils::checkFilesEqual(relativeFilePath, entry.path())) {
             std::string userAnswear = "a";
             std::cout << "Conflict fount in file: "
-                      << mgitTmp.filename().string() << ".\n";
+                      << relativeFilePath.string() << ".\n";
             std::cout << "Witch version do you wanna keep --default is a, "
                          "(a, b)?\n";
             std::cout << "a - " << mergedIntoBranchName << " version.\n"
@@ -188,9 +188,8 @@ void MergeCommand ::indirectMerge(const std::string &mergedIntoBranchName,
         std::getline(std::cin, message);
     } while (message.empty());
 
-    // commit the changes to both branches
-    Utils::copyDirRecursive(mgitTmp, ".minigit/index");
-    CommitCommand::commit(commitId, mergedBranchName, message);
+    // commit the merge only to the current branch and update the working tree
+    Utils::copyDirRecursive(mgitTmp, ".");
     Utils::copyDirRecursive(mgitTmp, ".minigit/index");
     CommitCommand::commit(commitId, mergedIntoBranchName, message);
 }
