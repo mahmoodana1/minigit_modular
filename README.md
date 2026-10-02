@@ -140,6 +140,6 @@ There is no automatic 3-way text merge. Conflicts are resolved by you, manually,
 
 ## Author
 
-Mahmood AbuRmelh — Software Engineering student, embedded systems focus.
+Mahmood AbuRmelh — Software Engineering student.
 
 Built as a learning project to internalize how Git's data model works by re-deriving it.
